@@ -1,0 +1,13 @@
+{
+  "protocol_log":
+  {
+    "Timestamp": "None",
+    "Time": "None",
+    "TypeofPacket": "None",
+    "TransactionType": "None",
+    "IID": "None",
+    "TASKTag": "None",
+    "LUN": "None",
+    "Data": "None"
+  }
+}
