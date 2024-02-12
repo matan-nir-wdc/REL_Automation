@@ -1,6 +1,4 @@
-import csv
-import pandas as pd
-
+import csv_handler as CSV
 import FileHandler as FH
 
 
@@ -8,29 +6,19 @@ def get_timestamp_event(path, vtf, show_cmd=5):
     folder = FH.getFilePath(path, file_name="PROTOCOL_LOG")
     files = FH.getFilesPath(path=folder, exception="csv")
     protocol_file = files[-1]
-    res = extract_from_protocol_log(protocol_file, vtf, show_cmd)
+    res = search_cmd_timestamp(protocol_file, vtf, show_cmd)
     return res
 
 
-def extract_from_protocol_log(file, vtf, show_cmd):
-    res = search_cmd_timestamp(file=file, time_stamp=vtf['Timestamp'], show_cmd=show_cmd)
-    result = res[['Timestamp', ' Time ', 'Type of Packet', 'Transaction Type', 'IID ', 'TASK Tag', ' LUN',
-                  'Data']].to_string()
-    if len(result.splitlines()) > 2:
-        result = f"No Time Stamp found, Here is {show_cmd} before and after : \n" + result
-    return result
-
-
-def search_cmd_timestamp(file, time_stamp, show_cmd=5):
-    time_stamp = 1005
-    df = pd.read_csv(f'{file}', encoding='utf-8', low_memory=False, skiprows=20)
-    found = df[df["Timestamp"] == time_stamp]
-    if len(found['Timestamp']) == 1:
-        uid = found['TASK Tag'][1]
-        res = df[(df['TASK Tag'] == uid) & (df['Transaction Type'] == "RESPONSE")].head(1)
+def search_cmd_timestamp(file, vtf, show_cmd):
+    data = CSV.get_data(file=file, skiprows=20)
+    headers_needed = ['Timestamp', 'Time', 'TypeofPacket', 'TransactionType', 'IID', 'TASKTag', 'LUN', 'Data']
+    res = CSV.reduce_header(data=data, headers=headers_needed)
+    res = CSV.return_signle_event(data=res, header='Timestamp', value=vtf['Timestamp'])
+    if len(res.index) == 1:
+        return res
     else:
-        pre = df[df["Timestamp"] < time_stamp].tail(show_cmd)
-        post = df[df["Timestamp"] > time_stamp].tail(show_cmd)
-        frames = [pre, post]
-        res = pd.concat(frames)
-    return res
+        res1 = CSV.return_all_found_events(data=data, header='Timestamp', value=vtf['Timestamp'], compare="<")
+        res2 = CSV.return_all_found_events(data=data, header='Timestamp', value=vtf['Timestamp'], compare=">")
+        res = CSV.combine_data(res1.tail(show_cmd), res2.head(show_cmd))
+        return f"No Time Stamp found, Here is {show_cmd} before and after : \n" + res.to_string()

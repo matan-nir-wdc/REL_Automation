@@ -64,7 +64,7 @@ rwr_files = {
     "fatal_files": [],
     "UECC_files": [],
     "GBB_files": [],
-    "err_files":[],
+    "err_files": [],
 }
 device_info = {
     "die_capacity": None,
