@@ -1,24 +1,42 @@
 import pandas as pd
 
 
-def get_data(file, encoding='utf-8', low_memory=False, skiprows=0):
-    df = pd.read_csv(filepath_or_buffer=file, encoding=encoding, low_memory=low_memory, skiprows=skiprows)
-    df.columns = df.columns.str.replace(' ', '')
+def get_data(file, sep=',', names="", encoding='latin-1', low_memory=False, skiprows=0, fix_header=True):
+    if names:
+        df = pd.read_csv(filepath_or_buffer=file, sep=sep, names=names, encoding=encoding, low_memory=low_memory,
+                        skiprows=skiprows)
+    else:
+        df = pd.read_csv(filepath_or_buffer=file, sep=sep, encoding=encoding, low_memory=low_memory, skiprows=skiprows)
+    if fix_header:
+        df.columns = df.columns.str.replace(' ', '')
     return df
 
 
-def return_all_found_events(data, header, value):
+def check_value_exist(data, value):
+    '''Need Work'''
     return 0
-    pass
 
 
-def return_fisrt_event(data, header, value):
+def return_all_found_events(data, header, value, compare="=="):
+    if compare == "==":
+        data = data[data[f'{header}'] == str(value)]
+    elif compare == ">":
+        data = data[data[f'{header}'] > str(value)]
+    elif compare == "<":
+        data = data[data[f'{header}'] < str(value)]
+    elif compare == "str":
+        data = data[data[f'{header}'].str.contains(f'{value}')]
+    return data
+
+
+def return_signle_event(data, header, value):
     return data[data[f'{header}'] == value]
 
 
-def return_last_event(data):
-    res = return_all_found_events(data, header, value),
-    return res.tail(1)
-    pass
+def reduce_header(data, headers):
+    return data[headers]
 
 
+def combine_data(data1, data2):
+    frames = [data1, data2]
+    return pd.concat(frames)

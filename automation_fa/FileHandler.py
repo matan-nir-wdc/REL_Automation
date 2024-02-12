@@ -1,7 +1,8 @@
 import glob
 import json
 import os
-
+import pathlib
+import zipfile
 
 def write_file(folder_path, section_name, report):
     with open(f'{folder_path}\\REL_results.txt', 'a', encoding='utf-8') as f:
@@ -10,8 +11,7 @@ def write_file(folder_path, section_name, report):
             json_report = '\n'.join(report)
             f.write(str(json_report))
         elif isinstance(report, dict):
-            json.dump(report, f, ensure_ascii=False, indent=4)
-
+            json.dump(report, f, ensure_ascii=True, indent=4)
         elif isinstance(report, str):
             f.write(report)
         f.write("\n\n")
@@ -50,3 +50,13 @@ def extract_event_from_file(file_path, target_phrase):
                         return lines[found[0]:found[1]]
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+def remove_file(path, file):
+    file_to_rem = pathlib.Path(f"{path}\\{file}")
+    file_to_rem.unlink()
+
+
+def unzip(path, zip_name, folder_name):
+    with zipfile.ZipFile(f"{path}\\{zip_name}", 'r') as zip_ref:
+        zip_ref.extractall(folder_name)
