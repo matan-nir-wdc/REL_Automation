@@ -1,5 +1,5 @@
 
 def get_data(file):
-    with open(file) as f:
-        f = f.readlines()
-    return f
+    with open(file, mode='r', encoding='utf-8') as data:
+        data = data.readlines()
+    return data

@@ -1,6 +1,8 @@
+import re
+
 import FileHandler as FH
 from info_dictionary import vtf_log, vtf_asc, device_info
-import re
+import logHandler as LOG
 
 
 def get_device_info(path):
@@ -22,9 +24,8 @@ def get_device_info(path):
                         device_info_tmp["type"] = info.split(":")[1]
                     elif key != "type":
                         device_info_tmp[key] = info.split(":")[1]
-    except:
+    except ValueError as e:
         print("error")
-        # add gear
     return device_info_tmp
 
 
@@ -46,10 +47,13 @@ def get_asc_ascq(data):
         if "ascq" in string.lower():
             end = i
     amount_of_lines = end - start
+    if amount_of_lines < 1:
+        return None
     values["asc"] = [s.lstrip() for s in line[start:end]]
     values["asc"] = [s.rstrip("\t\r\n") for s in values["asc"]]
     values["ascq"] = [s.lstrip() for s in line[start + amount_of_lines:end + amount_of_lines]]
     values["ascq"] = [s.rstrip("\t\r\n") for s in values["ascq"]]
+
     return values
 
 
@@ -66,3 +70,17 @@ def extract_event2_data(data):
     asc_ascq = get_asc_ascq(data)
     search.update(asc_ascq)
     return search
+
+
+def get_rel_from_data(path):
+    file_path = FH.getFilePath(original_file_path=path, file_name="VTFLog.log")
+    data = LOG.get_data(file_path)
+    rel_err = {"REL Err in VTF:": []}
+    voltage = ""
+    for line in data:
+        if "REL Err" in line:
+            rel_err["REL Err in VTF:"].append(line)
+        elif "Current Voltage" in line:
+            voltage = line
+    rel_err["Voltage:"] = voltage
+    return rel_err
