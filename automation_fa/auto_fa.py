@@ -8,6 +8,7 @@ import ProtocolLog as PL
 import smartReport as SR
 import ctf_handler as CTF
 
+
 def vtf_info(path):
     FH.print_head_line("VTF Log")
     vtf_log = VTF.vtf_event2_info(path)
@@ -51,8 +52,9 @@ if __name__ == "__main__":
     current_project = PRJ.choose(args.project)
     vtf_data = vtf_info(args.path)
     ctf_log_error(args.path, args.full_ctf, vtf_data)
-    FH.remove_quotes_from_file(args.path)
     smartReport(args.path, project_json=current_project.smartReport)
     emonitor_actions(args.path)
     protoco_log_info(args.path, vtf_data)
+    # shutil.copyfile(path + "\\REL_results.txt", args.path + f"\\REL_results{num}.txt")
+    FH.remove_quotes_from_file(args.path)
     print("Done Auto FA.")

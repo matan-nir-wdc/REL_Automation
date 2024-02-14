@@ -68,3 +68,4 @@ def remove_quotes_from_file(path):
         for line in f:
             fo.write(line.replace('"', '').replace("'", ""))
     remove_file(path=f'{path}',file='REL_results.txt')
+
