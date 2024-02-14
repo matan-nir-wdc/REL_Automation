@@ -58,6 +58,7 @@ rwr = {
     "EPWR": [],
     "GBB": [],
     "exception": [],
+    "invalidate": [],
 }
 rwr_files = {
     "assert_files": [],
@@ -65,6 +66,7 @@ rwr_files = {
     "UECC_files": [],
     "GBB_files": [],
     "err_files": [],
+    "invalidate_files": [],
 }
 device_info = {
     "die_capacity": None,

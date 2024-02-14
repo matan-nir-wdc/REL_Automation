@@ -26,6 +26,10 @@ def get_device_info(path):
                         device_info_tmp[key] = info.split(":")[1]
     except ValueError as e:
         print("error")
+    except AttributeError as e:
+        print(e)
+        print("Pleases check VTF Log for changes")
+        return None
     return device_info_tmp
 
 
@@ -33,8 +37,12 @@ def vtf_event2_info(path):
     file_path = FH.getFilePath(original_file_path=path, file_name="VTFLog.log")
     device_info = get_device_info(file_path)
     even_2_data = FH.extract_event_from_file(file_path, "event 2")
-    device_info.update(extract_event2_data(even_2_data))
-    return device_info
+    if device_info:
+        device_info.update(extract_event2_data(even_2_data))
+        return device_info
+    else:
+        return extract_event2_data(even_2_data)
+
 
 
 def get_asc_ascq(data):
@@ -68,7 +76,8 @@ def extract_event2_data(data):
                     val = val.translate({ord(i): None for i in '\n\r\t'})
                 search[key] = val
     asc_ascq = get_asc_ascq(data)
-    search.update(asc_ascq)
+    if asc_ascq:
+        search.update(asc_ascq)
     return search
 
 

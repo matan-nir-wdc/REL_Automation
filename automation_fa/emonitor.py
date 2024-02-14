@@ -16,6 +16,9 @@ def run_emonitor(path="C:\\temp"):
         return None
     files = FH.getFilesPath(path=path, exception="rwr")
     decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
+    if len(files) < 1:
+        print("No RWR files were found.")
+        return None, None
     print("Start reading RWR file.")
     rwr = files[-1]
     num_of_rwr = re.search('\d+', rwr).group()
