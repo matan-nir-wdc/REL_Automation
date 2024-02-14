@@ -55,6 +55,5 @@ if __name__ == "__main__":
     smartReport(args.path, project_json=current_project.smartReport)
     emonitor_actions(args.path)
     protoco_log_info(args.path, vtf_data)
-    # shutil.copyfile(path + "\\REL_results.txt", args.path + f"\\REL_results{num}.txt")
     FH.remove_quotes_from_file(args.path)
     print("Done Auto FA.")
