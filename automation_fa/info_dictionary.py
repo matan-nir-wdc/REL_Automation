@@ -58,6 +58,7 @@ rwr = {
     "EPWR": [],
     "GBB": [],
     "exception": [],
+    "invalidate": [],
 }
 rwr_files = {
     "assert_files": [],

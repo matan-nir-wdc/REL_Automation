@@ -51,8 +51,12 @@ def read_results(rwr_numbers, result_path):
             if amount > 0:
                 if search in ["assert", "fatal", "UECC", "GBB", "err"]:
                     rwr_files_tmp[f'{search}_files'].append(file_number)
-                issue = issue.drop_duplicates(subset=['issue1']).to_string()
-                rwr_issues[f'{search}'] = issue + f"\namount = {amount}"
+                issue = issue.drop_duplicates(subset=['issue1'])
+                issue['com'] = issue['issue1'].astype(str) + issue['issue2']
+                issue = issue['com'].values.tolist()
+                issue.append(f"amount = {amount}")
+                rwr_issues[f'{search}'] = issue
         for file in rwr_numbers:
+            pass
             FH.remove_file(path=result_path, file=f"temp{file}.csv")
-        return rwr_files_tmp, rwr_issues
+    return rwr_files_tmp, rwr_issues
