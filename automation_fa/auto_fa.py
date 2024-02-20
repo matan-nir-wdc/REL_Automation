@@ -21,7 +21,8 @@ def vtf_info(path):
 def protoco_log_info(path, vtf):
     FH.print_head_line("protocol Log")
     res = PL.get_timestamp_event(path, vtf)
-    FH.write_file(folder_path=path, section_name="Protocol log:", report=res)
+    if res:
+        FH.write_file(folder_path=path, section_name="Protocol log:", report=res)
 
 
 def ctf_log_error(path, full_ctf_cmd, vtf_data):

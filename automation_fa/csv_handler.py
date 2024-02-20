@@ -18,14 +18,25 @@ def check_value_exist(data, value):
 
 
 def return_all_found_events(data, header, value, compare="=="):
-    if compare == "==":
-        data = data[data[f'{header}'] == str(value)]
-    elif compare == ">":
-        data = data[data[f'{header}'] > str(value)]
-    elif compare == "<":
-        data = data[data[f'{header}'] < str(value)]
-    elif compare == "str":
-        data = data[data[f'{header}'].str.contains(f'{value}')]
+    try:
+        if compare == "==":
+            data = data[data[f'{header}'] == value]
+        elif compare == ">":
+            data = data[data[f'{header}'] > value]
+        elif compare == "<":
+            data = data[data[f'{header}'] < value]
+        elif compare == "str":
+            data = data[data[f'{header}'].str.contains(f'{value}')]
+    except TypeError as e:
+        print (e)
+        if compare == "==":
+            data = data[data[f'{header}'] == str(value)]
+        elif compare == ">":
+            data = data[data[f'{header}'] > str(value)]
+        elif compare == "<":
+            data = data[data[f'{header}'] < str(value)]
+        elif compare == "str":
+            data = data[data[f'{header}'].str.contains(f'{value}')]
     return data
 
 

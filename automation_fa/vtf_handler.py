@@ -68,7 +68,8 @@ def extract_event2_data(data):
                     val = val.translate({ord(i): None for i in '\n\r\t'})
                 search[key] = val
     asc_ascq = get_asc_ascq(data)
-    search.update(asc_ascq)
+    if asc_ascq:
+        search.update(asc_ascq)
     return search
 
 

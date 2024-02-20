@@ -72,5 +72,6 @@ device_info = {
     "die_count": None,
     "flash_type": None,
     "type": None,
-    "card_capacity": None
+    "card_capacity": None,
+    "gear": None
 }
