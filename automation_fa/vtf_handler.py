@@ -13,6 +13,9 @@ def get_device_info(path):
         for line in lines:
             if "description: {" in line:
                 lines = line
+            elif "Set Bus Mode to" in line:
+                tmp = line.split(">>>")
+                device_info_tmp['gear'] = int(re.search(r'\d+', tmp[1]).group())
         lines = lines.split("[")
         lines[1] = lines[1].split("]")[1]
         lines[2] = lines[2].split("]")[1]
@@ -33,7 +36,10 @@ def vtf_event2_info(path):
     file_path = FH.getFilePath(original_file_path=path, file_name="VTFLog.log")
     device_info = get_device_info(file_path)
     even_2_data = FH.extract_event_from_file(file_path, "event 2")
-    device_info.update(extract_event2_data(even_2_data))
+    if even_2_data and device_info:
+        device_info.update(extract_event2_data(even_2_data))
+    elif even_2_data:
+        return even_2_data
     return device_info
 
 

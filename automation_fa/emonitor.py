@@ -8,6 +8,16 @@ import csv_handler as CSV
 from info_dictionary import rwr, rwr_files
 
 
+def check_for_dme_issue(data, path):
+    print("Checking for DME issue")
+    event = "MPHY ISR PMI"
+    val = "20"
+    issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
+    new_df = issue['parameters'].str.endswith(f'{val}').to_frame()
+    index = new_df.index[new_df['parameters'] == True].tolist()
+    dme = issue.loc[[index[0]]].to_string()
+    FH.write_file(folder_path=path, section_name="Found DME issue:", report=dme)
+
 def run_emonitor(path="C:\\temp"):
     print("Getting eMonitor folder.")
     emonitor = "C:\\Program Files (x86)\\Default Company Name\\eMonitorSetup\\eMonitor.exe"
@@ -15,13 +25,25 @@ def run_emonitor(path="C:\\temp"):
         print(f"No eMonitor MST version found.")
         return None
     files = FH.getFilesPath(path=path, exception="rwr")
+    tmp_files=[]
+    for file in files:
+        file = file.split("\\")[-1]
+        tmp_files.append(file)
+    files = tmp_files
     decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
     print("Start reading RWR file.")
-    rwr = files[-1]
-    num_of_rwr = re.search('\d+', rwr).group()
     rwr_number = []
-    save_file = f"{path}\\temp{num_of_rwr}.csv"
-    rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{rwr}" "{save_file}"'
+    pattern = re.compile(r'\d+')
+    extracted_numbers = [pattern.findall(s) for s in files]
+    for file in extracted_numbers:
+        rwr_number.append(file[0])
+    rwr = max(rwr_number)
+    rwr_number = rwr
+    for file in files:
+        if rwr_number in file:
+            rwr = file
+    save_file = f"{path}\\temp{rwr_number}.csv"
+    rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
     print(rwr_cmd)
     p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=1)
     out = p.stdout.read(1)
@@ -30,7 +52,7 @@ def run_emonitor(path="C:\\temp"):
         sys.stdout.flush()
         out = p.stdout.read(1)
     print("Done Reading RWR file.")
-    return read_results(rwr_numbers=[num_of_rwr], result_path=path)
+    return read_results(rwr_numbers=[rwr_number], result_path=path)
 
 
 def read_results(rwr_numbers, result_path):
@@ -42,12 +64,13 @@ def read_results(rwr_numbers, result_path):
         save_file = f"{result_path}\\temp{file_number}.csv"
         data = CSV.get_data(file=save_file, encoding='utf-8', fix_header=False)
         print("Done reading the results.")
+        check_for_dme_issue(data=data, path=result_path)
         print('Start analysis:')
         new_df = data['name'].str.split('(', expand=True)
         new_df.columns = ['issue{}'.format(x + 1) for x in new_df.columns]
         for search in rwr.keys():
             issue = CSV.return_all_found_events(data=new_df, header='issue1', value=search, compare="str")
-            amount = new_df['issue1'].str.contains(f"{search}").sum()
+            amount = CSV.get_amount_per_colum(data=new_df, header='issue1', value=search)
             if amount > 0:
                 if search in ["assert", "fatal", "UECC", "GBB", "err"]:
                     rwr_files_tmp[f'{search}_files'].append(file_number)

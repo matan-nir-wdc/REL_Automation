@@ -51,3 +51,7 @@ def reduce_header(data, headers):
 def combine_data(data1, data2):
     frames = [data1, data2]
     return pd.concat(frames)
+
+
+def get_amount_per_colum(data, header, value):
+    return data[f'{header}'].str.contains(f"{value}").sum()
