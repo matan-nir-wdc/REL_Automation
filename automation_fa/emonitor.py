@@ -15,8 +15,12 @@ def check_for_dme_issue(data, path):
     issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
     new_df = issue['parameters'].str.endswith(f'{val}').to_frame()
     index = new_df.index[new_df['parameters'] == True].tolist()
-    dme = issue.loc[[index[0]]].to_string()
-    FH.write_file(folder_path=path, section_name="Found DME issue:", report=dme)
+    if len(index) > 0:
+        dme = issue.loc[[index[0]]].to_string()
+        FH.write_file(folder_path=path, section_name="Found DME issue:", report=dme)
+    else:
+        print("No DME issue found")
+
 
 def run_emonitor(path="C:\\temp"):
     print("Getting eMonitor folder.")
@@ -25,7 +29,7 @@ def run_emonitor(path="C:\\temp"):
         print(f"No eMonitor MST version found.")
         return None
     files = FH.getFilesPath(path=path, exception="rwr")
-    tmp_files=[]
+    tmp_files = []
     for file in files:
         file = file.split("\\")[-1]
         tmp_files.append(file)
@@ -36,14 +40,15 @@ def run_emonitor(path="C:\\temp"):
     pattern = re.compile(r'\d+')
     extracted_numbers = [pattern.findall(s) for s in files]
     for file in extracted_numbers:
-        rwr_number.append(file[0])
-    rwr = max(rwr_number)
+        rwr_number = rwr_number + file
+    rwr = rwr_number[-1]
     rwr_number = rwr
     for file in files:
         if rwr_number in file:
             rwr = file
     save_file = f"{path}\\temp{rwr_number}.csv"
-    rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
+    # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
+    rwr_cmd = f'"{emonitor}" -l "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
     print(rwr_cmd)
     p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=1)
     out = p.stdout.read(1)
