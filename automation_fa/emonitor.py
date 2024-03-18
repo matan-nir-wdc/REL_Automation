@@ -10,6 +10,11 @@ from info_dictionary import rwr, rwr_files
 
 def check_for_dme_issue(data, path):
     print("Checking for DME issue")
+    dme_val_20_issue(data, path)
+    DME_NAC_issue(data, path)
+
+
+def dme_val_20_issue(data, path):
     event = "MPHY ISR PMI"
     val = "20"
     issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
@@ -17,9 +22,27 @@ def check_for_dme_issue(data, path):
     index = new_df.index[new_df['parameters'] == True].tolist()
     if len(index) > 0:
         dme = issue.loc[[index[0]]].to_string()
-        FH.write_file(folder_path=path, section_name="Found DME issue:", report=dme)
-    else:
-        print("No DME issue found")
+        FH.write_file(folder_path=path,
+                      section_name=f"Found DME issue(Add 'PMI x020' to FAR, amount={len(index)}):", report=dme)
+        print("Found PMI x020 issue.")
+
+
+def DME_NAC_issue(data, path):
+    event = "Lane0_Falling"
+    issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
+    if len(issue) > 999:
+        df = issue.iloc[0].to_string(index=False)
+        FH.write_file(folder_path=path,
+                      section_name=f"Found DME issue(Add Lane0_Falling to FAR), amount={len(df)}:", report="")
+        print("Found Lane0_Falling issue.")
+        return
+    event = "NAC_RECEIVED"
+    issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
+    if len(issue) > 199:
+        df = issue.iloc[0].to_string(index=False)
+        FH.write_file(folder_path=path,
+                      section_name=f"Found DME issue(Add NAC_RECIEVED to FAR), amount={len(df)}:", report=df)
+        print("Found NAC_RECIEVED issue.")
 
 
 def run_emonitor(path="C:\\temp"):
@@ -41,11 +64,15 @@ def run_emonitor(path="C:\\temp"):
     extracted_numbers = [pattern.findall(s) for s in files]
     for file in extracted_numbers:
         rwr_number = rwr_number + file
-    rwr = rwr_number[-1]
-    rwr_number = rwr
-    for file in files:
-        if rwr_number in file:
-            rwr = file
+    if len(rwr_number) < len(tmp_files) or len(tmp_files) == 1:
+        rwr = "ATB_LOG.rwr"
+        rwr_numer = 0
+    else:
+        rwr = rwr_number[-2]
+        rwr_number = rwr
+        for file in files:
+            if rwr_number in file:
+                rwr = file
     save_file = f"{path}\\temp{rwr_number}.csv"
     # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
     rwr_cmd = f'"{emonitor}" -l "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
