@@ -1,3 +1,5 @@
+import os
+import zipfile
 from argparse import ArgumentParser
 
 import project as PRJ
@@ -37,24 +39,64 @@ def smartReport(main_folder, project_json):
 
 def emonitor_actions(path):
     FH.print_head_line("RWR Fast Scan")
-    rwr_files, rwr_issues = EMonitor.run_emonitor(args.path)
+    rwr_files, rwr_issues = EMonitor.run_emonitor(path)
     FH.write_file(folder_path=path, section_name="RWR_Files:", report=rwr_files)
     FH.write_file(folder_path=path, section_name="RWR_issue:", report=rwr_issues)
 
 
+def create_folder(path):
+    try:
+        os.makedirs(path)
+        print(f"Folder created at {path}")
+    except FileExistsError:
+        print(f"Folder already exists at {path}")
+
+
+def get_zip_file_list(path):
+    zip_files = []
+    for file in os.listdir(path):
+        if file.endswith(".zip"):
+            zip_files.append(file)
+    return zip_files
+
+
+def unzip_file(zip_file, extract_folder):
+    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+        zip_ref.extractall(extract_folder)
+
+
+def run_auto_fa(args, path):
+    vtf_data = vtf_info(path)
+    ctf_log_error(path, args.full_ctf, vtf_data)
+    smartReport(path, project_json=current_project.smartReport)
+    emonitor_actions(path)
+    protoco_log_info(path, vtf_data)
+    FH.remove_quotes_from_file(path)
+
+
+
 if __name__ == "__main__":
     parser = ArgumentParser(description='Automation FA.', epilog='REL Team FA Automation')
-    parser.add_argument('--path', type=str, help='path to result folder.')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--path', type=str, help='path to result folder.')
+    group.add_argument('--zip_path', type=str, help='path to zips folder.')
     parser.add_argument('--full_ctf', action='store_true')
     parser.add_argument('--full_vtf', action='store_true')
     parser.add_argument('--zip_file', action='store_true', help="is the folder zipped")
     parser.add_argument('--project', type=str, choices=['SPA', 'OBERON'], required=True)
     args = parser.parse_args()
     current_project = PRJ.choose(args.project)
-    vtf_data = vtf_info(args.path)
-    ctf_log_error(args.path, args.full_ctf, vtf_data)
-    smartReport(args.path, project_json=current_project.smartReport)
-    emonitor_actions(args.path)
-    protoco_log_info(args.path, vtf_data)
-    FH.remove_quotes_from_file(args.path)
+    if args.zip_path:
+        zip_list = get_zip_file_list(args.zip_path)
+        for zip in zip_list:
+            name = f"{zip.split('.zip')[0]}"
+            zip_folder = f"{args.zip_path}\\{zip.split('.zip')[0]}"
+            zip = f"{args.zip_path}\\{zip}"
+            create_folder(zip_folder)
+            unzip_file(zip, zip_folder)
+            print(f"done unziping {zip}")
+            run_auto_fa(args, zip_folder)
+            FH.copy_res(main_folder=args.zip_path, path=zip_folder, name=name)
+    else:
+        run_auto_fa(args, args.path)
     print("Done Auto FA.")

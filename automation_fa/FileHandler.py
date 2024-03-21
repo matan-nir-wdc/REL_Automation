@@ -2,6 +2,7 @@ import glob
 import json
 import os
 import pathlib
+import shutil
 import zipfile
 
 
@@ -68,3 +69,8 @@ def remove_quotes_from_file(path):
         for line in f:
             fo.write(line.replace('"', '').replace("'", ""))
     remove_file(path=f'{path}', file='REL_results.txt')
+
+
+def copy_res(main_folder, path, name):
+    shutil.copy(f'{path}\\REL_result.txt', main_folder)
+    os.rename(f"{main_folder}\\REL_result.txt", f"{main_folder}\\{name}.txt")

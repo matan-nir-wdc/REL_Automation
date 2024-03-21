@@ -64,6 +64,9 @@ def run_emonitor(path="C:\\temp"):
     extracted_numbers = [pattern.findall(s) for s in files]
     for file in extracted_numbers:
         rwr_number = rwr_number + file
+    for i in range(0, len(rwr_number)):
+        rwr_number[i] = int(rwr_number[i])
+    rwr_number = sorted(rwr_number)
     if len(rwr_number) < len(tmp_files) or len(tmp_files) == 1:
         rwr = "ATB_LOG.rwr"
         rwr_numer = 0
@@ -71,7 +74,7 @@ def run_emonitor(path="C:\\temp"):
         rwr = rwr_number[-2]
         rwr_number = rwr
         for file in files:
-            if rwr_number in file:
+            if str(rwr_number) in file:
                 rwr = file
     save_file = f"{path}\\temp{rwr_number}.csv"
     # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
