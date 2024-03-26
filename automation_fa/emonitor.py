@@ -8,10 +8,18 @@ import csv_handler as CSV
 from info_dictionary import rwr, rwr_files
 
 
+def contains_number(strings):
+    for string in strings:
+        if not any(char.isdigit() for char in string):
+            return True
+    return False
+
+
 def check_for_dme_issue(data, path):
     print("Checking for DME issue")
     dme_val_20_issue(data, path)
     DME_NAC_issue(data, path)
+    print("Done checking for DME issue.")
 
 
 def dme_val_20_issue(data, path):
@@ -59,6 +67,7 @@ def run_emonitor(path="C:\\temp"):
     files = tmp_files
     decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
     print("Start reading RWR file.")
+    check_rwr = True
     rwr_number = []
     pattern = re.compile(r'\d+')
     extracted_numbers = [pattern.findall(s) for s in files]
@@ -67,36 +76,40 @@ def run_emonitor(path="C:\\temp"):
     for i in range(0, len(rwr_number)):
         rwr_number[i] = int(rwr_number[i])
     rwr_number = sorted(rwr_number)
-    if len(rwr_number) < len(tmp_files) or len(tmp_files) == 1:
+    if len(files) == 0:
+        check_rwr = False
+    elif contains_number(tmp_files) and len (tmp_files) < 3:
         rwr = "ATB_LOG.rwr"
         rwr_numer = 0
     else:
-        rwr = rwr_number[-2]
+        rwr = rwr_number[-1]
         rwr_number = rwr
         for file in files:
             if str(rwr_number) in file:
                 rwr = file
-    save_file = f"{path}\\temp{rwr_number}.csv"
-    # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
-    rwr_cmd = f'"{emonitor}" -l "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
-    print(rwr_cmd)
-    p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=1)
-    out = p.stdout.read(1)
-    while out != b'':
-        sys.stdout.write(out.decode("utf-8"))
-        sys.stdout.flush()
+    if check_rwr:
+        save_file = f"{path}\\temp.csv"
+        # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
+        rwr_cmd = f'"{emonitor}" -l "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
+        print(rwr_cmd)
+        p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=1)
         out = p.stdout.read(1)
-    print("Done Reading RWR file.")
-    return read_results(rwr_numbers=[rwr_number], result_path=path)
+        while out != b'':
+            sys.stdout.write(out.decode("utf-8"))
+            sys.stdout.flush()
+            out = p.stdout.read(1)
+        print("Done Reading RWR file.")
+        return read_results(rwr_numbers=[rwr_number], result_path=path)
+    return None, None
 
 
 def read_results(rwr_numbers, result_path):
     FH.print_head_line(file_name="RWR")
     rwr_files_tmp = rwr_files
+    save_file = f"{result_path}\\temp.csv"
     rwr_issues = rwr
-    print("Checking RWR results, may take up to 3 minutes.")
+    print("Checking RWR results.")
     for file_number in rwr_numbers:
-        save_file = f"{result_path}\\temp{file_number}.csv"
         data = CSV.get_data(file=save_file, encoding='utf-8', fix_header=False)
         print("Done reading the results.")
         check_for_dme_issue(data=data, path=result_path)
@@ -116,5 +129,6 @@ def read_results(rwr_numbers, result_path):
                 rwr_issues[f'{search}'] = issue
         for file in rwr_numbers:
             pass
+            file = ""
             FH.remove_file(path=result_path, file=f"temp{file}.csv")
     return rwr_files_tmp, rwr_issues

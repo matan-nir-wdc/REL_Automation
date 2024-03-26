@@ -53,9 +53,9 @@ rwr = {
     "fail": [],
     "assert": [],
     "fatal": [],
-    "UECC": [],
-    "CECC": [],
-    "EPWR": [],
+    "uecc": [],
+    "cecc": [],
+    "epwr": [],
     "GBB": [],
     "exception": [],
     "invalidate": [],
@@ -63,8 +63,8 @@ rwr = {
 rwr_files = {
     "assert_files": [],
     "fatal_files": [],
-    "UECC_files": [],
-    "GBB_files": [],
+    "uecc_files": [],
+    "gbb_files": [],
     "err_files": [],
 }
 device_info = {

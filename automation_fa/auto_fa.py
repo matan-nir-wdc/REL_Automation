@@ -40,8 +40,9 @@ def smartReport(main_folder, project_json):
 def emonitor_actions(path):
     FH.print_head_line("RWR Fast Scan")
     rwr_files, rwr_issues = EMonitor.run_emonitor(path)
-    FH.write_file(folder_path=path, section_name="RWR_Files:", report=rwr_files)
-    FH.write_file(folder_path=path, section_name="RWR_issue:", report=rwr_issues)
+    if rwr_files:
+        FH.write_file(folder_path=path, section_name="RWR_Files:", report=rwr_files)
+        FH.write_file(folder_path=path, section_name="RWR_issue:", report=rwr_issues)
 
 
 def create_folder(path):
