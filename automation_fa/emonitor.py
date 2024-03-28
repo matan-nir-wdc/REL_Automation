@@ -6,6 +6,7 @@ import FileHandler as FH
 import os.path
 import csv_handler as CSV
 from info_dictionary import rwr, rwr_files
+from ast import literal_eval
 
 
 def contains_number(strings):
@@ -78,7 +79,7 @@ def run_emonitor(path="C:\\temp"):
     rwr_number = sorted(rwr_number)
     if len(files) == 0:
         check_rwr = False
-    elif contains_number(tmp_files) and len (tmp_files) < 3:
+    elif contains_number(tmp_files) and len(tmp_files) < 3:
         rwr = "ATB_LOG.rwr"
         rwr_numer = 0
     else:
@@ -103,6 +104,23 @@ def run_emonitor(path="C:\\temp"):
     return None, None
 
 
+def get_assert_file(original_data, data, path):
+    index = CSV.get_index_by_value(data=data, header="issue1", value="System exception pt1")
+    if len(index) > 0:
+        assert_issue = original_data.loc[[index[0]]]
+        assert_file_line = assert_issue['parameters']
+        assert_file_line = assert_file_line.to_string().split("|")[1:3]
+        file = literal_eval(assert_file_line[0])
+        line = literal_eval(assert_file_line[1])
+        source = assert_issue['source'].to_string()
+        issue_in = "file19.txt" if "PS" in source else "file18.txt"
+        report = f'Assert in file: {issue_in}, row to file: {file}, line in file: {line}'
+        FH.write_file(folder_path=path, section_name="Found assert issue", report=report)
+        print("FOUND ASSERT ISSUE!!!")
+    else:
+        print("No assert issues found.")
+
+
 def read_results(rwr_numbers, result_path):
     FH.print_head_line(file_name="RWR")
     rwr_files_tmp = rwr_files
@@ -119,8 +137,11 @@ def read_results(rwr_numbers, result_path):
         for search in rwr.keys():
             issue = CSV.return_all_found_events(data=new_df, header='issue1', value=search, compare="str")
             amount = CSV.get_amount_per_colum(data=new_df, header='issue1', value=search)
+            if search == "exception":
+                print("Checking for assert issue:")
+                get_assert_file(original_data=data, data=issue, path=result_path)
             if amount > 0:
-                if search in ["assert", "fatal", "UECC", "GBB", "err"]:
+                if search in ["assert", "fatal", "uecc", "gbb", "err"]:
                     rwr_files_tmp[f'{search}_files'].append(file_number)
                 issue = issue.drop_duplicates(subset=['issue1'])
                 issue['com'] = issue['issue1'].astype(str) + "(" + issue['issue2']

@@ -59,8 +59,20 @@ def get_asc_ascq(data):
     values["asc"] = [s.rstrip("\t\r\n") for s in values["asc"]]
     values["ascq"] = [s.lstrip() for s in line[start + amount_of_lines:end + amount_of_lines]]
     values["ascq"] = [s.rstrip("\t\r\n") for s in values["ascq"]]
-
     return values
+
+
+def get_Command_UPIU(data):
+    lines = data
+    upiu = {"TaskTag": None}
+    for line in lines:
+        if "<Command UPIU>" in line:
+            for value in lines:
+                if "Task Tag =" in value:
+                    value = value.translate({ord(i): None for i in '\n\r\t'})
+                    upiu["TaskTag"] = value.split("Task Tag =")[1]
+                    return upiu
+
 
 
 def extract_event2_data(data):
@@ -74,8 +86,11 @@ def extract_event2_data(data):
                     val = val.translate({ord(i): None for i in '\n\r\t'})
                 search[key] = val
     asc_ascq = get_asc_ascq(data)
+    upiu = get_Command_UPIU(data)
     if asc_ascq:
         search.update(asc_ascq)
+    if upiu:
+        search.update(upiu)
     return search
 
 

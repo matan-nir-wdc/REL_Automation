@@ -42,6 +42,7 @@ vtf_log = {
     "Timestamp": None,
     "Lun": None,
     "response": "Need to Add",
+    "TaskTag": None,
 }
 vtf_asc = {
     "asc": [],
