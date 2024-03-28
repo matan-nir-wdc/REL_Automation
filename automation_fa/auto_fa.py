@@ -75,7 +75,6 @@ def run_auto_fa(args, path):
     FH.remove_quotes_from_file(path)
 
 
-
 if __name__ == "__main__":
     parser = ArgumentParser(description='Automation FA.', epilog='REL Team FA Automation')
     group = parser.add_mutually_exclusive_group()

@@ -55,3 +55,8 @@ def combine_data(data1, data2):
 
 def get_amount_per_colum(data, header, value):
     return data[f'{header}'].str.contains(f"{value}").sum()
+
+
+def get_index_by_value(data, header, value):
+    res = data[data[f'{header}'].str.contains(f'{value}')].index
+    return res.to_list()
