@@ -83,7 +83,7 @@ def run_emonitor(path="C:\\temp"):
         rwr = "ATB_LOG.rwr"
         rwr_numer = 0
     else:
-        rwr = rwr_number[-1]
+        rwr = rwr_number[-2]
         rwr_number = rwr
         for file in files:
             if str(rwr_number) in file:
@@ -135,6 +135,7 @@ def read_results(rwr_numbers, result_path):
         new_df = data['name'].str.split('(', expand=True)
         new_df.columns = ['issue{}'.format(x + 1) for x in new_df.columns]
         for search in rwr.keys():
+            print(f"Checking for {search} in the results.")
             issue = CSV.return_all_found_events(data=new_df, header='issue1', value=search, compare="str")
             amount = CSV.get_amount_per_colum(data=new_df, header='issue1', value=search)
             if search == "exception":

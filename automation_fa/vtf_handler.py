@@ -7,28 +7,30 @@ import logHandler as LOG
 
 def get_device_info(path):
     device_info_tmp = device_info
+    res = None
     try:
         with open(path, 'r') as data:
             lines = data.readlines()
         for line in lines:
             if "description: {" in line:
-                lines = line
+                res = line
             elif "Set Bus Mode to" in line:
                 tmp = line.split(">>>")
                 device_info_tmp['gear'] = int(re.search(r'\d+', tmp[1]).group())
-        lines = lines.split("[")
-        lines[1] = lines[1].split("]")[1]
-        lines[2] = lines[2].split("]")[1]
-        data_info = (lines[0] + lines[1] + lines[2]).split(",")
-        for info in data_info:
-            for key in device_info_tmp.keys():
-                if key in info:
-                    if key == "type" and "flash_type" not in info:
-                        device_info_tmp["type"] = info.split(":")[1]
-                    elif key != "type":
-                        device_info_tmp[key] = info.split(":")[1]
+        if res:
+            res = res.split("[")
+            res[1] = res[1].split("]")[1]
+            res[2] = res[2].split("]")[1]
+            data_info = (res[0] + res[1] + res[2]).split(",")
+            for info in data_info:
+                for key in device_info_tmp.keys():
+                    if key in info:
+                        if key == "type" and "flash_type" not in info:
+                            device_info_tmp["type"] = info.split(":")[1]
+                        elif key != "type":
+                            device_info_tmp[key] = info.split(":")[1]
     except ValueError as e:
-        print("error")
+        print(f"error: {e}")
     return device_info_tmp
 
 
@@ -97,12 +99,12 @@ def extract_event2_data(data):
 def get_rel_from_data(path):
     file_path = FH.getFilePath(original_file_path=path, file_name="VTFLog.log")
     data = LOG.get_data(file_path)
-    rel_err = {"REL Err in VTF:": []}
+    rel_err = {"REL Err in VTF": []}
     voltage = ""
     for line in data:
-        if "REL Err" in line:
-            rel_err["REL Err in VTF:"].append(line)
+        if "rel err" in line.lower():
+            rel_err["REL Err in VTF"].append(line)
         elif "Current Voltage" in line:
             voltage = line
-    rel_err["Voltage:"] = voltage
+    rel_err["Voltage"] = voltage
     return rel_err
