@@ -2,7 +2,10 @@ import glob
 import json
 import os
 import pathlib
+import shutil
+import threading
 import zipfile
+
 
 def write_file(folder_path, section_name, report):
     with open(f'{folder_path}\\REL_results.txt', 'a', encoding='utf-8') as f:
@@ -60,3 +63,15 @@ def remove_file(path, file):
 def unzip(path, zip_name, folder_name):
     with zipfile.ZipFile(f"{path}\\{zip_name}", 'r') as zip_ref:
         zip_ref.extractall(folder_name)
+
+
+def remove_quotes_from_file(path):
+    with open(f'{path}\\REL_results.txt', 'r') as f, open(f'{path}\\REL_result.txt', 'w') as fo:
+        for line in f:
+            fo.write(line.replace('"', '').replace("'", ""))
+    remove_file(path=f'{path}', file='REL_results.txt')
+
+
+def copy_res(main_folder, path, name):
+    shutil.copy(f'{path}\\REL_result.txt', main_folder)
+    os.rename(f"{main_folder}\\REL_result.txt", f"{main_folder}\\{name}.txt")

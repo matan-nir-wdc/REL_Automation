@@ -42,6 +42,7 @@ vtf_log = {
     "Timestamp": None,
     "Lun": None,
     "response": "Need to Add",
+    "TaskTag": None,
 }
 vtf_asc = {
     "asc": [],
@@ -53,17 +54,18 @@ rwr = {
     "fail": [],
     "assert": [],
     "fatal": [],
-    "UECC": [],
-    "CECC": [],
-    "EPWR": [],
+    "uecc": [],
+    "cecc": [],
+    "epwr": [],
     "GBB": [],
     "exception": [],
+    "invalidate": [],
 }
 rwr_files = {
     "assert_files": [],
     "fatal_files": [],
-    "UECC_files": [],
-    "GBB_files": [],
+    "uecc_files": [],
+    "gbb_files": [],
     "err_files": [],
 }
 device_info = {
@@ -71,5 +73,6 @@ device_info = {
     "die_count": None,
     "flash_type": None,
     "type": None,
-    "card_capacity": None
+    "card_capacity": None,
+    "gear": None
 }

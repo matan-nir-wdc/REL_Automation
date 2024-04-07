@@ -18,14 +18,25 @@ def check_value_exist(data, value):
 
 
 def return_all_found_events(data, header, value, compare="=="):
-    if compare == "==":
-        data = data[data[f'{header}'] == str(value)]
-    elif compare == ">":
-        data = data[data[f'{header}'] > str(value)]
-    elif compare == "<":
-        data = data[data[f'{header}'] < str(value)]
-    elif compare == "str":
-        data = data[data[f'{header}'].str.contains(f'{value}')]
+    try:
+        if compare == "==":
+            data = data[data[f'{header}'] == value]
+        elif compare == ">":
+            data = data[data[f'{header}'] > value]
+        elif compare == "<":
+            data = data[data[f'{header}'] < value]
+        elif compare == "str":
+            data = data[data[f'{header}'].str.lower().str.contains(f'{value}')]
+    except TypeError as e:
+        print (e)
+        if compare == "==":
+            data = data[data[f'{header}'] == str(value)]
+        elif compare == ">":
+            data = data[data[f'{header}'] > str(value)]
+        elif compare == "<":
+            data = data[data[f'{header}'] < str(value)]
+        elif compare == "str":
+            data = data[data[f'{header}'].str.lower().str.contains(f'{value}')]
     return data
 
 
@@ -40,3 +51,12 @@ def reduce_header(data, headers):
 def combine_data(data1, data2):
     frames = [data1, data2]
     return pd.concat(frames)
+
+
+def get_amount_per_colum(data, header, value):
+    return data[f'{header}'].str.contains(f"{value}").sum()
+
+
+def get_index_by_value(data, header, value):
+    res = data[data[f'{header}'].str.contains(f'{value}')].index
+    return res.to_list()
