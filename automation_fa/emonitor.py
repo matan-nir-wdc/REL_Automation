@@ -16,6 +16,18 @@ def contains_number(strings):
     return False
 
 
+def get_fw_version_from_device(data, path):
+    fw = CSV.return_signle_event(data=data, header="name", value="whoami")
+    ver = []
+    fw = fw['parameters'].str.split("|").to_list()
+    ver.append(int(fw[0][0][2:]))
+    ver.append(int(fw[0][1][2:]))
+    ver.append(int(fw[0][2], 16))
+    ver = str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2])
+    FH.write_file(folder_path=path,
+                  section_name=f"FW Version", report=ver)
+    print(ver)
+
 def check_for_dme_issue(data, path):
     print("Checking for DME issue")
     dme_val_20_issue(data, path)
@@ -39,6 +51,7 @@ def dme_val_20_issue(data, path):
 def DME_NAC_issue(data, path):
     event = "Lane0_Falling"
     issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
+    print(f"Found {len(issue)} Lane0_Falling")
     if len(issue) > 999:
         df = issue.iloc[0].to_string(index=False)
         FH.write_file(folder_path=path,
@@ -47,6 +60,7 @@ def DME_NAC_issue(data, path):
         return
     event = "NAC_RECEIVED"
     issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
+    print(f"Found {len(issue)} NAC_RECEIVED")
     if len(issue) > 199:
         df = issue.iloc[0].to_string(index=False)
         FH.write_file(folder_path=path,
@@ -83,7 +97,7 @@ def run_emonitor(path="C:\\temp"):
         rwr = "ATB_LOG.rwr"
         rwr_numer = 0
     else:
-        rwr = rwr_number[-2]
+        rwr = rwr_number[-1]
         rwr_number = rwr
         for file in files:
             if str(rwr_number) in file:
@@ -127,9 +141,11 @@ def read_results(rwr_numbers, result_path):
     save_file = f"{result_path}\\temp.csv"
     rwr_issues = rwr
     print("Checking RWR results.")
+    data = CSV.get_data(file=save_file, encoding='utf-8', fix_header=False)
+    print("Done reading the results.")
+    print("Getting FW version from device")
+    get_fw_version_from_device(data=data, path=result_path)
     for file_number in rwr_numbers:
-        data = CSV.get_data(file=save_file, encoding='utf-8', fix_header=False)
-        print("Done reading the results.")
         check_for_dme_issue(data=data, path=result_path)
         print('Start analysis:')
         new_df = data['name'].str.split('(', expand=True)
@@ -137,7 +153,7 @@ def read_results(rwr_numbers, result_path):
         for search in rwr.keys():
             print(f"Checking for {search} in the results.")
             issue = CSV.return_all_found_events(data=new_df, header='issue1', value=search, compare="str")
-            amount = CSV.get_amount_per_colum(data=new_df, header='issue1', value=search)
+            amount = CSV.get_amount_per_colum(data=issue, header='issue1', value=search)
             if search == "exception":
                 print("Checking for assert issue:")
                 get_assert_file(original_data=data, data=issue, path=result_path)

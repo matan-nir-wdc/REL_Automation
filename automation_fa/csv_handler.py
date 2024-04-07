@@ -40,8 +40,10 @@ def return_all_found_events(data, header, value, compare="=="):
     return data
 
 
-def return_signle_event(data, header, value):
-    return data[data[f'{header}'] == value]
+def return_signle_event(data, header, value, is_numeric=False):
+    if is_numeric:
+        return data[data[f'{header}'] == value]
+    return data[data[f'{header}'].str.lower().str.contains(f'{value}')]
 
 
 def reduce_header(data, headers):

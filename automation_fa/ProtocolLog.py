@@ -9,7 +9,7 @@ def get_timestamp_event(path, vtf, show_cmd=5):
     else:
         files = FH.getFilesPath(path=folder, exception="csv")
         protocol_file = files[-1]
-    if protocol_file:
+    if protocol_file and vtf["Timestamp"]:
         res = search_cmd_timestamp(protocol_file, vtf, show_cmd)
     else:
         print("No Protocol Log found.")
@@ -21,7 +21,7 @@ def search_cmd_timestamp(file, vtf, show_cmd):
     data = CSV.get_data(file=file, skiprows=20)
     headers_needed = ['Timestamp', 'Time', 'TypeofPacket', 'TransactionType', 'IID', 'TASKTag', 'LUN', 'Data']
     res = CSV.reduce_header(data=data, headers=headers_needed)
-    res = CSV.return_signle_event(data=res, header='Timestamp', value=vtf['Timestamp'])
+    res = CSV.return_signle_event(data=res, header='Timestamp', value=vtf['Timestamp'], is_numeric=True)
     if len(res.index) == 1:
         return res.to_string()
     else:
