@@ -20,13 +20,16 @@ def get_fw_version_from_device(data, path):
     fw = CSV.return_signle_event(data=data, header="name", value="whoami")
     ver = []
     fw = fw['parameters'].str.split("|").to_list()
-    ver.append(int(fw[0][0][2:]))
-    ver.append(int(fw[0][1][2:]))
-    ver.append(int(fw[0][2], 16))
-    ver = str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2])
-    FH.write_file(folder_path=path,
-                  section_name=f"FW Version", report=ver)
-    print(ver)
+    try:
+        ver.append(int(fw[0][0][2:]))
+        ver.append(int(fw[0][1][2:]))
+        ver.append(int(fw[0][2], 16))
+        ver = str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2])
+        FH.write_file(folder_path=path, section_name=f"FW Version", report=ver)
+        print(ver)
+    except IndexError as e:
+        print(e)
+
 
 def check_for_dme_issue(data, path):
     print("Checking for DME issue")
@@ -49,7 +52,7 @@ def dme_val_20_issue(data, path):
 
 
 def DME_NAC_issue(data, path):
-    event = "Lane0_Falling"
+    event = "lane0_falling"
     issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
     print(f"Found {len(issue)} Lane0_Falling")
     if len(issue) > 999:
@@ -58,7 +61,7 @@ def DME_NAC_issue(data, path):
                       section_name=f"Found DME issue(Add Lane0_Falling to FAR), amount={len(df)}:", report="")
         print("Found Lane0_Falling issue.")
         return
-    event = "NAC_RECEIVED"
+    event = "nac_received"
     issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
     print(f"Found {len(issue)} NAC_RECEIVED")
     if len(issue) > 199:
@@ -97,10 +100,9 @@ def run_emonitor(path="C:\\temp"):
         rwr = "ATB_LOG.rwr"
         rwr_numer = 0
     else:
-        rwr = rwr_number[-1]
-        rwr_number = rwr
+        rwr = rwr_number[-2]
         for file in files:
-            if str(rwr_number) in file:
+            if str(rwr) in file:
                 rwr = file
     if check_rwr:
         save_file = f"{path}\\temp.csv"
