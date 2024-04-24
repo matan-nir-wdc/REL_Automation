@@ -26,9 +26,10 @@ def return_all_found_events(data, header, value, compare="=="):
         elif compare == "<":
             data = data[data[f'{header}'] < value]
         elif compare == "str":
+            value = value.lower()
             data = data[data[f'{header}'].str.lower().str.contains(f'{value}')]
     except TypeError as e:
-        print (e)
+        print(e)
         if compare == "==":
             data = data[data[f'{header}'] == str(value)]
         elif compare == ">":

@@ -1,7 +1,5 @@
 import os
-import zipfile
 from argparse import ArgumentParser
-
 import project as PRJ
 import FileHandler as FH
 import vtf_handler as VTF
@@ -40,7 +38,7 @@ def smartReport(main_folder, project_json):
 def emonitor_actions(path):
     FH.print_head_line("RWR Fast Scan")
     rwr_files, rwr_issues = EMonitor.run_emonitor(path)
-    if rwr_files:
+    if rwr_issues:
         FH.write_file(folder_path=path, section_name="RWR_Files:", report=rwr_files)
         FH.write_file(folder_path=path, section_name="RWR_issue:", report=rwr_issues)
 
@@ -61,18 +59,34 @@ def get_zip_file_list(path):
     return zip_files
 
 
-def unzip_file(zip_file, extract_folder):
-    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-        zip_ref.extractall(extract_folder)
-
-
-def run_auto_fa(args, path):
+def run_auto_fa(args, path, project):
+    current_project = PRJ.choose(project)
     vtf_data = vtf_info(path)
     ctf_log_error(path, args.full_ctf, vtf_data)
     smartReport(path, project_json=current_project.smartReport)
-    emonitor_actions(path)
     protoco_log_info(path, vtf_data)
+    emonitor_actions(path)
     FH.remove_quotes_from_file(path)
+
+
+def main(args, path, remote_path, project):
+    values = path.split("\\")
+    zip_name = values[-1]
+    save_path = path.replace(zip_name, "")
+    name = zip_name.split(".zip")[0]
+    zip_folder = f"{save_path}\\{name}"
+    zip = f"{path}"
+    copy_to = remote_path.replace(zip_name, "")
+    create_folder(zip_folder)
+    print("start unzip")
+    FH.unzip(zip_file=zip, extract_folder=zip_folder)
+    print(f"done unziping {zip}")
+    run_auto_fa(args, zip_folder, project)
+    FH.copy_res(main_folder=copy_to, path=zip_folder, name=name)
+    print("Done Auto FA.")
+    print("delete zip")
+    FH.remove_file(path=save_path, file=name)
+    return zip
 
 
 if __name__ == "__main__":
@@ -85,7 +99,6 @@ if __name__ == "__main__":
     parser.add_argument('--zip_file', action='store_true', help="is the folder zipped")
     parser.add_argument('--project', type=str, choices=['SPA', 'OBERON'], required=True)
     args = parser.parse_args()
-    current_project = PRJ.choose(args.project)
     if args.zip_path:
         zip_list = get_zip_file_list(args.zip_path)
         for zip in zip_list:
@@ -97,6 +110,9 @@ if __name__ == "__main__":
             print(f"done unziping {zip}")
             run_auto_fa(args, zip_folder)
             FH.copy_res(main_folder=args.zip_path, path=zip_folder, name=name)
+
     else:
-        run_auto_fa(args, args.path)
+        run_auto_fa(args, args.path, project=args.project)
     print("Done Auto FA.")
+
+

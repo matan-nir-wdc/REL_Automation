@@ -12,6 +12,7 @@ class Oberon:
         self.smartReport = info_dictionary.SmartReportOberon
         self.protocol_log = "protocol*.csv"
 
+
 def choose(project):
     if project == "SPA":
         return SFP()

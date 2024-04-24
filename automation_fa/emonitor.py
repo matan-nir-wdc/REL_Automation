@@ -71,7 +71,7 @@ def DME_NAC_issue(data, path):
         print("Found NAC_RECIEVED issue.")
 
 
-def run_emonitor(path="C:\\temp"):
+def run_emonitor(path="F:\\AutoFA"):
     print("Getting eMonitor folder.")
     emonitor = "C:\\Program Files (x86)\\Default Company Name\\eMonitorSetup\\eMonitor.exe"
     if not os.path.exists(emonitor):

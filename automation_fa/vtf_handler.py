@@ -31,6 +31,7 @@ def get_device_info(path):
                             device_info_tmp[key] = info.split(":")[1]
     except ValueError as e:
         print(f"error: {e}")
+        return device_info_tmp
     return device_info_tmp
 
 
@@ -83,7 +84,11 @@ def extract_event2_data(data):
         for key in search.keys():
             if key in line:
                 res = line.split(key)[1]
-                val = int(re.search(r'\d+', res).group()) if key in ["UID", "Timestamp", "Lun"] else res[1:]
+                try:
+                    val = int(re.search(r'\d+', res).group()) if key in ["UID", "Timestamp", "Lun"] else res[1:]
+                except Exception as e:
+                    val = "Not Found"
+                    continue
                 if isinstance(val, str):
                     val = val.translate({ord(i): None for i in '\n\r\t'})
                 search[key] = val

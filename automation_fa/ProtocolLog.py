@@ -5,8 +5,10 @@ import FileHandler as FH
 def get_timestamp_event(path, vtf, show_cmd=5):
     folder = FH.getFilePath(path, file_name="PROTOCOL_LOG")
     if len(folder) < 1:
+        print("searching for protocol*.csv")
         protocol_file = FH.getFilePath(path, file_name="protocol*.csv")
     else:
+        print("still checking")
         files = FH.getFilesPath(path=folder, exception="csv")
         protocol_file = files[-1]
     if protocol_file and vtf["Timestamp"]:
