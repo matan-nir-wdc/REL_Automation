@@ -35,9 +35,9 @@ def smartReport(main_folder, project_json):
     SR.get_smart_report(main_folder, project_json=project_json)
 
 
-def emonitor_actions(path):
+def emonitor_actions(path, amount_of_rwr):
     FH.print_head_line("RWR Fast Scan")
-    rwr_files, rwr_issues = EMonitor.run_emonitor(path)
+    rwr_files, rwr_issues = EMonitor.run_emonitor(path, amount_of_rwr)
     if rwr_issues:
         FH.write_file(folder_path=path, section_name="RWR_Files:", report=rwr_files)
         FH.write_file(folder_path=path, section_name="RWR_issue:", report=rwr_issues)
@@ -65,7 +65,7 @@ def run_auto_fa(args, path, project):
     ctf_log_error(path, args.full_ctf, vtf_data)
     smartReport(path, project_json=current_project.smartReport)
     protoco_log_info(path, vtf_data)
-    emonitor_actions(path)
+    emonitor_actions(path, args.amount_of_rwr)
     FH.remove_quotes_from_file(path)
 
 
@@ -97,6 +97,7 @@ if __name__ == "__main__":
     parser.add_argument('--full_ctf', action='store_true')
     parser.add_argument('--full_vtf', action='store_true')
     parser.add_argument('--zip_file', action='store_true', help="is the folder zipped")
+    parser.add_argument('--amount_of_rwr', default=2, help="amount of RWR file from the last")
     parser.add_argument('--project', type=str, choices=['SPA', 'OBERON'], required=True)
     args = parser.parse_args()
     if args.zip_path:

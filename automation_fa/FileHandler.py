@@ -6,6 +6,7 @@ import shutil
 import zipfile
 from tqdm import tqdm
 
+
 def create_folder(folder_path="F:\\AutoFA\\tmp"):
     permissions = 0o777  # This sets read, write, execute permissions for owner and read, execute permissions for group and others
     try:
@@ -16,10 +17,11 @@ def create_folder(folder_path="F:\\AutoFA\\tmp"):
         print("An error occurred:", str(e))
 
 
-
 def get_all_folders_in_path(path):
     folders = [entry.path for entry in os.scandir(path) if entry.is_dir()]
     return folders
+
+
 def get_all_zips_in_path(remote_host):
     zips = []
     os.chdir(f"{remote_host}")
@@ -118,10 +120,10 @@ def extract_event_from_file(file_path, target_phrase):
         print(f"An error occurred: {e}")
 
 
-def remove_file(path, file):
+def remove_file(file):
     permissions = 0o777  # This sets read, write, execute permissions for owner and read, execute permissions for group and others
-    os.chmod(f"{path}\\{file}", permissions)
-    file_to_rem = pathlib.Path(f"{path}\\{file}")
+    os.chmod(f"{file}", permissions)
+    file_to_rem = pathlib.Path(f"{file}")
     file_to_rem.unlink()
 
 
@@ -155,12 +157,11 @@ def unzip(zip_file, extract_folder):
     os.remove(path=f"{zip_file}")
 
 
-
 def remove_quotes_from_file(path):
     with open(f'{path}\\REL_results.txt', 'r') as f, open(f'{path}\\REL_result.txt', 'w') as fo:
         for line in f:
             fo.write(line.replace('"', '').replace("'", ""))
-    remove_file(path=f'{path}', file='REL_results.txt')
+    remove_file(file=f'{path}\\REL_results.txt')
 
 
 def copy_res(main_folder, path, name):

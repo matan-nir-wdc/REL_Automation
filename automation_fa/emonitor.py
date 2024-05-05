@@ -24,7 +24,7 @@ def get_fw_version_from_device(data, path):
         ver.append(int(fw[0][0][2:]))
         ver.append(int(fw[0][1][2:]))
         ver.append(int(fw[0][2], 16))
-        ver = str(ver[0]) + "." + str(ver[1]) + "." + str(ver[2])
+        ver = str(ver[0]) + str(ver[1]) + "." + str(ver[2])
         FH.write_file(folder_path=path, section_name=f"FW Version", report=ver)
         print(ver)
     except IndexError as e:
@@ -48,7 +48,10 @@ def dme_val_20_issue(data, path):
         dme = issue.loc[[index[0]]].to_string()
         FH.write_file(folder_path=path,
                       section_name=f"Found DME issue(Add 'PMI x020' to FAR, amount={len(index)}):", report=dme)
-        print("Found PMI x020 issue.")
+        print("Found PMI 0x20 issue.")
+        return
+    del index
+    print("No PMI 0x20 issue found.")
 
 
 def DME_NAC_issue(data, path):
@@ -71,55 +74,6 @@ def DME_NAC_issue(data, path):
         print("Found NAC_RECIEVED issue.")
 
 
-def run_emonitor(path="F:\\AutoFA"):
-    print("Getting eMonitor folder.")
-    emonitor = "C:\\Program Files (x86)\\Default Company Name\\eMonitorSetup\\eMonitor.exe"
-    if not os.path.exists(emonitor):
-        print(f"No eMonitor MST version found.")
-        return None
-    files = FH.getFilesPath(path=path, exception="rwr")
-    tmp_files = []
-    for file in files:
-        file = file.split("\\")[-1]
-        tmp_files.append(file)
-    files = tmp_files
-    decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
-    print("Start reading RWR file.")
-    check_rwr = True
-    rwr_number = []
-    pattern = re.compile(r'\d+')
-    extracted_numbers = [pattern.findall(s) for s in files]
-    for file in extracted_numbers:
-        rwr_number = rwr_number + file
-    for i in range(0, len(rwr_number)):
-        rwr_number[i] = int(rwr_number[i])
-    rwr_number = sorted(rwr_number)
-    if len(files) == 0:
-        check_rwr = False
-    elif contains_number(tmp_files) and len(tmp_files) < 3:
-        rwr = "ATB_LOG.rwr"
-        rwr_numer = 0
-    else:
-        rwr = rwr_number[-2]
-        for file in files:
-            if str(rwr) in file:
-                rwr = file
-    if check_rwr:
-        save_file = f"{path}\\temp.csv"
-        # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
-        rwr_cmd = f'"{emonitor}" -l "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
-        print(rwr_cmd)
-        p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=1)
-        out = p.stdout.read(1)
-        while out != b'':
-            sys.stdout.write(out.decode("utf-8"))
-            sys.stdout.flush()
-            out = p.stdout.read(1)
-        print("Done Reading RWR file.")
-        return read_results(rwr_numbers=[rwr_number], result_path=path)
-    return None, None
-
-
 def get_assert_file(original_data, data, path):
     index = CSV.get_index_by_value(data=data, header="issue1", value="System exception pt1")
     if len(index) > 0:
@@ -137,17 +91,70 @@ def get_assert_file(original_data, data, path):
         print("No assert issues found.")
 
 
-def read_results(rwr_numbers, result_path):
+def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2):
+    print("Getting eMonitor folder.")
+    emonitor = "C:\\Program Files (x86)\\Default Company Name\\eMonitorSetup\\eMonitor.exe"
+    if not os.path.exists(emonitor):
+        print(f"No eMonitor MST version found.")
+        return None
+    decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
+    files = FH.getFilesPath(path=path, exception="rwr")
+    tmp_files = []
+    for file in files:
+        file = file.split("\\")[-1]
+        tmp_files.append(file)
+    files = tmp_files
+    del tmp_files
+    print("Start reading RWR file.")
+    check_rwr = True
+    rwr_number = []
+    for string in files:
+        rwr_number.extend([int(x) for x in re.findall(r'\d+', string)])
+    rwr_number = sorted(rwr_number)
+    if len(files) == 0:
+        check_rwr = False
+    elif "ATB_LOG.rwr" in files and len(files) < 3:
+        rwr_files = files
+    else:
+        rwr_files = files[((-1)*(amount_of_rwr)):]
+        rwr_number = rwr_number[((-1)*(amount_of_rwr)):]
+    if check_rwr:
+        num = 0
+        read_files = []
+        for file in rwr_files:
+            save_file = f"{path}\\temp_{rwr_number[num]}.csv"
+            read_files.append(save_file)
+            # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
+            rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{file}" "{save_file}"'
+            print(rwr_cmd)
+            p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=3)
+            out = p.stdout.read(1)
+            while out != b'':
+                sys.stdout.write(out.decode("utf-8"))
+                sys.stdout.flush()
+                out = p.stdout.read(1)
+            print("Done Reading 1 RWR file.")
+            num = num + 1
+        return read_results(rwr_numbers=rwr_number, result_path=path, results_files=read_files)
+    return None, None
+
+
+def read_results(rwr_numbers, result_path, results_files):
     FH.print_head_line(file_name="RWR")
-    rwr_files_tmp = rwr_files
-    save_file = f"{result_path}\\temp.csv"
-    rwr_issues = rwr
+    rwr_files_tmp = rwr_files.copy()
+    rwr_issues = rwr.copy()
+    get_fw = True
+    amount_of_issue = rwr.copy()
+    for key in amount_of_issue:
+        amount_of_issue[key] = 0
     print("Checking RWR results.")
-    data = CSV.get_data(file=save_file, encoding='utf-8', fix_header=False)
-    print("Done reading the results.")
-    print("Getting FW version from device")
-    get_fw_version_from_device(data=data, path=result_path)
-    for file_number in rwr_numbers:
+    for i, save_file in enumerate(results_files):
+        data = CSV.get_data(file=save_file, encoding='utf-8', fix_header=False)
+        print("Done reading the results.")
+        if get_fw:
+            print("Getting FW version from device")
+            get_fw_version_from_device(data=data, path=result_path)
+            get_fw = False
         check_for_dme_issue(data=data, path=result_path)
         print('Start analysis:')
         new_df = data['name'].str.split('(', expand=True)
@@ -161,14 +168,15 @@ def read_results(rwr_numbers, result_path):
                 get_assert_file(original_data=data, data=issue, path=result_path)
             if amount > 0:
                 if search in ["assert", "fatal", "uecc", "gbb", "err"]:
-                    rwr_files_tmp[f'{search}_files'].append(file_number)
-                issue = issue.drop_duplicates(subset=['issue1'])
-                issue['com'] = issue['issue1'].astype(str) + "(" + issue['issue2']
-                issue = issue['com'].values.tolist()
-                issue.append(f"amount = {amount}")
-                rwr_issues[f'{search}'] = issue
-        for file in rwr_numbers:
-            pass
-            file = ""
-            FH.remove_file(path=result_path, file=f"temp{file}.csv")
+                    rwr_files_tmp[f'{search}_files'].append(rwr_numbers[i])
+                combined_series_cat = issue['issue1'].str.cat(issue['issue2'], sep='(')
+                del issue
+                issue = combined_series_cat.tolist()
+                amount_of_issue[f'{search}'] = amount_of_issue[f'{search}'] + amount
+                rwr_issues[f'{search}'] = rwr_issues[f'{search}'] + issue
+        FH.remove_file(file=f"{save_file}")
+    for search in rwr.keys():
+        rwr_issues[f'{search}'] = list(set(rwr_issues[f'{search}']))
+        amount = amount_of_issue[f'{search}']
+        rwr_issues[f'{search}'].append(f"amount = {amount}")
     return rwr_files_tmp, rwr_issues

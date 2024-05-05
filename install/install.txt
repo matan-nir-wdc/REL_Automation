@@ -1,0 +1,1 @@
+Please run "install.bat" file in PowerShell "run as Administrator".
