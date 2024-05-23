@@ -24,4 +24,9 @@ def get_smart_report(path, project_json):
     for key in project_json.keys():
         if key in data:
             Smart_report[f'{key}'] = data[f'{key}']
+    keys = ["bitflipCorrectionCounter", "badBlockRuntimeIs", "badBlockRuntimeMlc", "eraseFailCount", "progFailCount",
+            "ueccInMarkedBlockCount", "uncorrectableErrorCorrectionCode"]
+    for key in keys:
+        if Smart_report[f'{key}'] != '0':
+            FH.write_file(folder_path=path, section_name="", report="Main value are high, please check!!!")
     FH.write_file(folder_path=path, section_name="SmartReport:", report=Smart_report)
