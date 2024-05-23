@@ -74,6 +74,15 @@ def DME_NAC_issue(data, path):
         print("Found NAC_RECIEVED issue.")
 
 
+def get_prog_fail(data, path):
+    value = "progFail: PS: EH  PF STATE(PFstate)"
+    issue = CSV.return_all_found_events(data=data, header='name', value=value, compare="str")
+    if len(issue) > 0:
+        print("Found progFail")
+        FH.write_file(folder_path=path, section_name=f"Found progFail:", report=issue, file_name="tmp.txt")
+        FH.combine_files(first_file_path=f"{path}\\tmp.txt", sec_file_path=f"{path}\\REL_result.txt")
+
+
 def get_assert_file(original_data, data, path):
     index = CSV.get_index_by_value(data=data, header="issue1", value="System exception pt1")
     if len(index) > 0:
@@ -84,9 +93,11 @@ def get_assert_file(original_data, data, path):
         line = literal_eval(assert_file_line[1])
         source = assert_issue['source'].to_string()
         issue_in = "file19.txt" if "PS" in source else "file18.txt"
-        report = f'Assert in file: {issue_in}, row to file: {file}, line in file: {line}'
+        report = f'"FOUND ASSERT ISSUE!!!" \nAssert in file: {issue_in}, row to file: {file}, line in file: {line}'
         FH.write_file(folder_path=path, section_name="Found assert issue", report=report)
         print("FOUND ASSERT ISSUE!!!")
+        FH.write_file(folder_path=path, section_name="Found assert issue", report=report, file_name="tmp.txt")
+        FH.combine_files(first_file_path=f"{path}\\tmp.txt", sec_file_path=f"{path}\\REL_result.txt")
     else:
         print("No assert issues found.")
 
@@ -115,6 +126,7 @@ def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2):
         check_rwr = False
     elif "ATB_LOG.rwr" in files and len(files) < 3:
         rwr_files = files
+        rwr_number = rwr_number.appent("0")
     else:
         rwr_files = files[((-1)*(amount_of_rwr)):]
         rwr_number = rwr_number[((-1)*(amount_of_rwr)):]
@@ -125,7 +137,8 @@ def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2):
             save_file = f"{path}\\temp_{rwr_number[num]}.csv"
             read_files.append(save_file)
             # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
-            rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{file}" "{save_file}"'
+            num_of_rwr = "" if rwr_number[num] == "0" else rwr_number[num]
+            rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\ATB_LOG_{num_of_rwr}.rwr" "{save_file}"'
             print(rwr_cmd)
             p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=3)
             out = p.stdout.read(1)
@@ -156,6 +169,7 @@ def read_results(rwr_numbers, result_path, results_files):
             get_fw_version_from_device(data=data, path=result_path)
             get_fw = False
         check_for_dme_issue(data=data, path=result_path)
+        get_prog_fail(data=data, path=result_path)
         print('Start analysis:')
         new_df = data['name'].str.split('(', expand=True)
         new_df.columns = ['issue{}'.format(x + 1) for x in new_df.columns]

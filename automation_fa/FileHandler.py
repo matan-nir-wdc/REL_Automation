@@ -72,8 +72,8 @@ def copy_from_remote_path(remote_path, folder_path=""):
         print("An error occurred:", str(e))
 
 
-def write_file(folder_path, section_name, report):
-    with open(f'{folder_path}\\REL_results.txt', 'a', encoding='utf-8') as f:
+def write_file(folder_path, section_name, report, file_name="REL_results.txt"):
+    with open(f'{folder_path}\\{file_name}', 'a', encoding='utf-8') as f:
         f.write(section_name + "\n")
         if isinstance(report, list):
             json_report = '\n'.join(report)
@@ -167,3 +167,15 @@ def remove_quotes_from_file(path):
 def copy_res(main_folder, path, name):
     shutil.copy(f'{path}\\REL_result.txt', main_folder)
     os.rename(f"{main_folder}\\REL_result.txt", f"{main_folder}\\{name}.txt")
+
+def combine_files(first_file_path, sec_file_path):
+# Open the original file in read mode and the dummy file in write mode
+    with open(first_file_path, 'r') as read_obj, open(sec_file_path, 'r') as read_obj_2, open("c://dummy.txt", 'a+') as dummy:
+        for line in read_obj:
+            dummy.write(line)
+        for line in read_obj_2:
+            dummy.write(line)
+    # Remove the original file
+    os.remove(sec_file_path)
+    # Rename the dummy file as the original file
+    os.rename("c://dummy.txt", sec_file_path)

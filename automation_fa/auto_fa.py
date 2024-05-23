@@ -7,6 +7,11 @@ import emonitor as EMonitor
 import ProtocolLog as PL
 import smartReport as SR
 import ctf_handler as CTF
+import test_flow_handler as TFH
+
+
+def test_flow(path, project):
+    TFH.get_test_flow(path=path, project=project)
 
 
 def vtf_info(path):
@@ -18,7 +23,7 @@ def vtf_info(path):
     return vtf_log
 
 
-def protoco_log_info(path, vtf):
+def protocol_log_info(path, vtf):
     FH.print_head_line("protocol Log")
     res = PL.get_timestamp_event(path, vtf)
     if res:
@@ -61,10 +66,11 @@ def get_zip_file_list(path):
 
 def run_auto_fa(args, path, project):
     current_project = PRJ.choose(project)
+    test_flow(path= path, project=project)
     vtf_data = vtf_info(path)
     ctf_log_error(path, args.full_ctf, vtf_data)
     smartReport(path, project_json=current_project.smartReport)
-    protoco_log_info(path, vtf_data)
+    protocol_log_info(path, vtf_data)
     emonitor_actions(path, args.amount_of_rwr)
     FH.remove_quotes_from_file(path)
 
@@ -107,9 +113,9 @@ if __name__ == "__main__":
             zip_folder = f"{args.zip_path}\\{zip.split('.zip')[0]}"
             zip = f"{args.zip_path}\\{zip}"
             create_folder(zip_folder)
-            unzip_file(zip, zip_folder)
+            FH.unzip(zip, zip_folder)
             print(f"done unziping {zip}")
-            run_auto_fa(args, zip_folder)
+            run_auto_fa(args, zip_folder, project=args.prject)
             FH.copy_res(main_folder=args.zip_path, path=zip_folder, name=name)
 
     else:

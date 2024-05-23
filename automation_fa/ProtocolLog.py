@@ -20,14 +20,17 @@ def get_timestamp_event(path, vtf, show_cmd=5):
 
 
 def search_cmd_timestamp(file, vtf, show_cmd):
+    if vtf['Timestamp'] == 'Not Found':
+        return "Could Not find Time Stamp"
     data = CSV.get_data(file=file, skiprows=20)
-    headers_needed = ['Timestamp', 'Time', 'TypeofPacket', 'TransactionType', 'IID', 'TASKTag', 'LUN', 'Data']
+    headers_needed = ['Timestamp', 'Time', 'TypeofPacket', 'TransactionType', 'IID', 'TASKTag', 'LUN', 'Data',
+                      'ResetValue', 'DMEInd', 'DMEVector']
     res = CSV.reduce_header(data=data, headers=headers_needed)
-    res = CSV.return_signle_event(data=res, header='Timestamp', value=vtf['Timestamp'], is_numeric=True)
-    if len(res.index) == 1:
-        return res.to_string()
+    single = CSV.return_signle_event(data=res, header='Timestamp', value=vtf['Timestamp'], is_numeric=True)
+    if len(single.index) == 1:
+        return single.to_string()
     else:
-        res1 = CSV.return_all_found_events(data=data, header='Timestamp', value=vtf['Timestamp'], compare="<")
-        res2 = CSV.return_all_found_events(data=data, header='Timestamp', value=vtf['Timestamp'], compare=">")
+        res1 = CSV.return_all_found_events(data=res, header='Timestamp', value=vtf['Timestamp'], compare="<")
+        res2 = CSV.return_all_found_events(data=res, header='Timestamp', value=vtf['Timestamp'], compare=">")
         res = CSV.combine_data(res1.tail(show_cmd), res2.head(show_cmd))
         return f"No Time Stamp found, Here is {show_cmd} before and after : \n" + res.to_string()

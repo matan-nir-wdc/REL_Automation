@@ -4,9 +4,10 @@ import pandas as pd
 def get_data(file, sep=',', names="", encoding='latin-1', low_memory=False, skiprows=0, fix_header=True):
     if names:
         df = pd.read_csv(filepath_or_buffer=file, sep=sep, names=names, encoding=encoding, low_memory=low_memory,
-                        skiprows=skiprows)
+                         skiprows=skiprows, on_bad_lines='warn')
     else:
-        df = pd.read_csv(filepath_or_buffer=file, sep=sep, encoding=encoding, low_memory=low_memory, skiprows=skiprows)
+        df = pd.read_csv(filepath_or_buffer=file, sep=sep, encoding=encoding, low_memory=low_memory, skiprows=skiprows,
+                         on_bad_lines='warn')
     if fix_header:
         df.columns = df.columns.str.replace(' ', '')
     return df
@@ -18,6 +19,8 @@ def check_value_exist(data, value):
 
 
 def return_all_found_events(data, header, value, compare="=="):
+    if value == 'Not Found':
+        return 'Not Found'
     try:
         if compare == "==":
             data = data[data[f'{header}'] == value]

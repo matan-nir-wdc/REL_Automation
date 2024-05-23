@@ -1,0 +1,56 @@
+{
+  "OBERON":{
+  "DLT": [
+    "Write entire device (SLC + Hybrid --> Direct TLC + Folding Hybrid) X 7",
+    "Read entire device X 7",
+    "Unmap entire device _ time for BKOPs",
+    "SLC until 33%"
+  ],
+  "TBW": [
+    "Get test parameters",
+    "Check for run device “Resume mode” of “Fresh mode”",
+    "WB Off",
+    "In While (up to total Test time OR achieve target of data to be written higher):",
+    "Seq write entire device\nSeq read entire device\nEach 10 cycles - Verify WAF Threshold  : SLC = 1, TLC = 1.03",
+    "Read Full device"
+  ],
+  "4C": [
+    "Data Verify",
+    "DataLoad",
+    "Change Temp to -25c",
+    "Data Verify",
+    "Data Load",
+    "Change Temp to 85c",
+    "Data Verify"
+  ],
+  "GCWL": [
+    "Get test parameters",
+    "Format device(load FAT)",
+    "Fill different file at different sizes",
+    "Read and compare",
+    "Erase Media (@ FAT level)",
+    "Do Data Collection"
+  ],
+  "RD-WL": [
+    "Write entire device",
+    "150 time loop: Read 1M times from address :0xA7601 with 8K chunk size",
+    "fully busy with 0 HTAT",
+    "addresses 0xA7601 + 0xA7602 reads 1048574 each one",
+    "Every 5K reads perform Idle of 200ms for Bkops",
+    "Read entire device"
+  ],
+  "RD-BLK": [
+    "Verify Read Disturb stress impact on memory for lifetime at MOL & EOL",
+    "Read Disturb type of Block Level (Different size of reads)"
+  ],
+  "RDT": [
+    "Random Device configuration",
+    "Max Speed",
+    "Write boot",
+    "Perform Mix operation between Seq write & Random Write on 110% device random chunk sizes (for random 4K-512KB, for seq large chunk sizes 10MB-50M) (Separate the devices to Parts - each part will be written seq or random)",
+    "Perform Rewrite Sequential write on Random written area of 1MB in loop (less then 32MB)",
+    "Do Write Abort type of 'Power Cycle' by:",
+    "Sequential write on Random written area , use 1 command about 100MB + random the timing of abort"
+  ]
+}
+}

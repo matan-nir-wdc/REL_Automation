@@ -113,3 +113,14 @@ def get_rel_from_data(path):
             voltage = line
     rel_err["Voltage"] = voltage
     return rel_err
+
+def get_test_name(path):
+    try:
+        file_path = FH.getFilePath(original_file_path=path, file_name="VTFLog.log")
+        data = LOG.get_data(file_path)
+        for line in data:
+            if "Test=" in line:
+                return line.split("\\")[-1]
+    except Exception as e:
+        print(e)
+        return None
