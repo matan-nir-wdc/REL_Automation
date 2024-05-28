@@ -17,6 +17,7 @@ def contains_number(strings):
 
 
 def get_fw_version_from_device(data, path):
+    '''
     fw = CSV.return_signle_event(data=data, header="name", value="whoami")
     ver = []
     fw = fw['parameters'].str.split("|").to_list()
@@ -29,6 +30,8 @@ def get_fw_version_from_device(data, path):
         print(ver)
     except IndexError as e:
         print(e)
+          '''
+    pass
 
 
 def check_for_dme_issue(data, path):
@@ -46,6 +49,14 @@ def dme_val_20_issue(data, path):
     index = new_df.index[new_df['parameters'] == True].tolist()
     if len(index) > 0:
         dme = issue.loc[[index[0]]].to_string()
+        with open(f"{path}\\REL_results.txt", 'r') as file:
+            original_content = file.read()
+            pmi_issue = ["-------------------------------------", "Only PMI found, FA logs clean",
+                         "-------------------------------------"]
+            pmi_issue = '\n'.join(pmi_issue)
+            new_content = pmi_issue + "\n\n" + original_content
+            with open(f"{path}\\REL_results.txt", 'w') as file:
+                file.write(new_content)
         FH.write_file(folder_path=path,
                       section_name=f"Found DME issue(Add 'PMI x020' to FAR, amount={len(index)}):", report=dme)
         print("Found PMI 0x20 issue.")
@@ -75,12 +86,19 @@ def DME_NAC_issue(data, path):
 
 
 def get_prog_fail(data, path):
-    value = "progFail: PS: EH  PF STATE(PFstate)"
+    print("Search for prog fail")
+    value = "ps: eh  pf state"
     issue = CSV.return_all_found_events(data=data, header='name', value=value, compare="str")
     if len(issue) > 0:
         print("Found progFail")
-        FH.write_file(folder_path=path, section_name=f"Found progFail:", report=issue, file_name="tmp.txt")
-        FH.combine_files(first_file_path=f"{path}\\tmp.txt", sec_file_path=f"{path}\\REL_result.txt")
+        issue = issue.to_string()
+        with open(f"{path}\\REL_results.txt", 'r') as file:
+            original_content = file.read()
+            new_content = f"Found progFail:\n" + issue + original_content + "\n\n"
+            with open(f"{path}\\REL_results.txt", 'w') as file:
+                file.write(new_content)
+                return False
+    return True
 
 
 def get_assert_file(original_data, data, path):
@@ -102,7 +120,7 @@ def get_assert_file(original_data, data, path):
         print("No assert issues found.")
 
 
-def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2):
+def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2, sres=False):
     print("Getting eMonitor folder.")
     emonitor = "C:\\Program Files (x86)\\Default Company Name\\eMonitorSetup\\eMonitor.exe"
     if not os.path.exists(emonitor):
@@ -148,11 +166,11 @@ def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2):
                 out = p.stdout.read(1)
             print("Done Reading 1 RWR file.")
             num = num + 1
-        return read_results(rwr_numbers=rwr_number, result_path=path, results_files=read_files)
+        return read_results(rwr_numbers=rwr_number, result_path=path, results_files=read_files, sres=sres)
     return None, None
 
 
-def read_results(rwr_numbers, result_path, results_files):
+def read_results(rwr_numbers, result_path, results_files, sres):
     FH.print_head_line(file_name="RWR")
     rwr_files_tmp = rwr_files.copy()
     rwr_issues = rwr.copy()
@@ -168,8 +186,10 @@ def read_results(rwr_numbers, result_path, results_files):
             print("Getting FW version from device")
             get_fw_version_from_device(data=data, path=result_path)
             get_fw = False
-        check_for_dme_issue(data=data, path=result_path)
-        get_prog_fail(data=data, path=result_path)
+        run_dme = get_prog_fail(data=data, path=result_path)
+        if sres:
+            run_dme = False
+
         print('Start analysis:')
         new_df = data['name'].str.split('(', expand=True)
         new_df.columns = ['issue{}'.format(x + 1) for x in new_df.columns]
@@ -187,7 +207,11 @@ def read_results(rwr_numbers, result_path, results_files):
                 del issue
                 issue = combined_series_cat.tolist()
                 amount_of_issue[f'{search}'] = amount_of_issue[f'{search}'] + amount
+                if search in ["assert", "fatal", "exception", "uecc"]:
+                    run_dme = False
                 rwr_issues[f'{search}'] = rwr_issues[f'{search}'] + issue
+        if run_dme:
+            check_for_dme_issue(data=data, path=result_path)
         FH.remove_file(file=f"{save_file}")
     for search in rwr.keys():
         rwr_issues[f'{search}'] = list(set(rwr_issues[f'{search}']))

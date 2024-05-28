@@ -16,6 +16,3 @@ def get_test_flow(path, project):
             write_file(folder_path=path, section_name="Test Flow in HT:", report='\n'.join(test_flow[f"{key}"]))
             return
     print("Could NOT find the test")
-
-if __name__ == "__main__":
-    get_test_flow(path="C:\issue\TestDLTHost__10Percent_Full_20240412_153544_16641", project="OBERON")

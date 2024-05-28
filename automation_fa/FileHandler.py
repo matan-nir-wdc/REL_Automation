@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+import time
 import pathlib
 import shutil
 import zipfile
@@ -22,6 +23,20 @@ def get_all_folders_in_path(path):
     return folders
 
 
+def get_zip_in_path(remote_host):
+    zips = []
+    remote_host = remote_host.rstrip('\n')
+    os.chdir(f"{remote_host}")
+    current_sub_path = os.getcwd()
+    zip_file = [f for f in os.listdir(current_sub_path) if
+                os.path.isfile(os.path.join(current_sub_path, f)) and f.endswith('.zip')]
+    if len(zip_file) > 0:
+        zip_file = f"{current_sub_path}\\{zip_file[0]}"
+        print(zip_file)
+        zips.append(zip_file)
+    return zips
+
+
 def get_all_zips_in_path(remote_host):
     zips = []
     os.chdir(f"{remote_host}")
@@ -31,45 +46,38 @@ def get_all_zips_in_path(remote_host):
         sub_folders = [f for f in os.listdir(current_path) if os.path.isdir(os.path.join(current_path, f))]
         for sub_folder in sub_folders:
             current_sub_path = current_path + "\\" + str(sub_folder)
+
             zip_file = [f for f in os.listdir(current_sub_path) if
                         os.path.isfile(os.path.join(current_sub_path, f)) and f.endswith('.zip')]
             if len(zip_file) > 0:
                 zip_file = f"{current_sub_path}\\{zip_file[0]}"
+                print(zip_file)
                 zips.append(zip_file)
     return zips
 
 
 def copy_from_remote_path(remote_path, folder_path=""):
-    chunk_size = 1024
+    total_size = os.path.getsize(remote_path)
+    copied_size = 0
+    chunk_size = 1024 * 1024
     file_name = remote_path.split("\\")[-1]
     new_file_path = f"{folder_path}\\{file_name}"
-    try:
-        # Get the size of the source file
-        total_size = os.path.getsize(remote_path)
-        bytes_copied = 0
+    start_time = time.time()
+    with open(remote_path, 'rb') as source_file, open(new_file_path, 'wb') as dest_file:
+        while True:
+            chunk = source_file.read(chunk_size)
+            if not chunk:
+                break
+            dest_file.write(chunk)
+            copied_size += len(chunk)
 
-        # Open source file for reading in binary mode
-        with open(remote_path, 'rb') as source_file:
-            # Open destination file for writing in binary mode
-            with open(new_file_path, 'wb') as destination_file:
-                while True:
-                    # Read a chunk of data from the source file
-                    chunk = source_file.read(chunk_size)
-                    if not chunk:
-                        # End of file reached
-                        break
-                    # Write the chunk to the destination file
-                    destination_file.write(chunk)
-                    # Update bytes_copied
-                    bytes_copied += len(chunk)
-                    # Calculate and print the percentage
-                    percentage = (bytes_copied / total_size) * 100
-                    print(f"Copying... {percentage:.2f}% done", end='\r')
+            # Calculate and display progress
+            progress = copied_size / total_size * 100
+            print(f"\rProgress: {progress:.2f}%", end='')
 
-        print("File copied successfully.")
-        return new_file_path
-    except Exception as e:
-        print("An error occurred:", str(e))
+    end_time = time.time()
+    print(f"\nCopy complete. Time taken: {end_time - start_time:.2f} seconds")
+    return new_file_path
 
 
 def write_file(folder_path, section_name, report, file_name="REL_results.txt"):
@@ -140,7 +148,7 @@ def delete_folder(path):
     try:
         permissions = 0o777  # This sets read, write, execute permissions for owner and read, execute permissions for group and others
         os.chmod(f"{path}", permissions)
-        os.remove(path=path)
+        shutil.rmtree(path)
         print(f"Folder '{path}' and its contents have been successfully deleted.")
     except Exception as e:
         print(f"An error occurred while deleting the folder: {e}")
@@ -152,8 +160,6 @@ def unzip(zip_file, extract_folder):
         for file in tqdm(file_list, desc="Extracting"):
             zip_ref.extract(file, extract_folder)
     print("deleting zip file")
-    #permissions = 0o777  # This sets read, write, execute permissions for owner and read, execute permissions for group and others
-    #os.chmod(f"{zip_file}", permissions)
     os.remove(path=f"{zip_file}")
 
 
@@ -165,17 +171,27 @@ def remove_quotes_from_file(path):
 
 
 def copy_res(main_folder, path, name):
+    with open(f'{path}\\REL_result.txt', 'r') as file:
+        data = file.readlines()
+        for line in data:
+            if "Only PMI found, FA logs clean" in line:
+                name = "PMI ISSUE"
     shutil.copy(f'{path}\\REL_result.txt', main_folder)
-    os.rename(f"{main_folder}\\REL_result.txt", f"{main_folder}\\{name}.txt")
+    try:
+        os.rename(f"{main_folder}\\REL_result.txt", f"{main_folder}\\{name}.txt")
+    except Exception as e:
+        print(e)
+        pass
+
 
 def combine_files(first_file_path, sec_file_path):
-# Open the original file in read mode and the dummy file in write mode
-    with open(first_file_path, 'r') as read_obj, open(sec_file_path, 'r') as read_obj_2, open("c://dummy.txt", 'a+') as dummy:
-        for line in read_obj:
-            dummy.write(line)
-        for line in read_obj_2:
-            dummy.write(line)
+    # Open the original file in read mode and the dummy file in write mode
+    with open(first_file_path, '') as write_obj, open(sec_file_path, 'r') as read_obj:
+        for line in write_obj:
+            write_obj.write(line)
+        for line in first_file_path:
+            write_obj.write(line)
     # Remove the original file
     os.remove(sec_file_path)
     # Rename the dummy file as the original file
-    os.rename("c://dummy.txt", sec_file_path)
+    os.rename(write_obj, first_file_path)

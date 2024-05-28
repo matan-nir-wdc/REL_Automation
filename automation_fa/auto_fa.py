@@ -8,6 +8,15 @@ import ProtocolLog as PL
 import smartReport as SR
 import ctf_handler as CTF
 import test_flow_handler as TFH
+import pdl_handler as PDL
+
+
+def pdl_report(path):
+    FH.print_head_line("PDL")
+    pdl = PDL.get_pdl_file(path)
+    if pdl:
+        pdl_res = PDL.check_for_err_fail(pdl)
+        FH.write_file(folder_path=path, section_name="PDL:", report=pdl_res)
 
 
 def test_flow(path, project):
@@ -40,9 +49,9 @@ def smartReport(main_folder, project_json):
     SR.get_smart_report(main_folder, project_json=project_json)
 
 
-def emonitor_actions(path, amount_of_rwr):
+def emonitor_actions(path, amount_of_rwr=2, sres=False):
     FH.print_head_line("RWR Fast Scan")
-    rwr_files, rwr_issues = EMonitor.run_emonitor(path, amount_of_rwr)
+    rwr_files, rwr_issues = EMonitor.run_emonitor(path, amount_of_rwr, sres)
     if rwr_issues:
         FH.write_file(folder_path=path, section_name="RWR_Files:", report=rwr_files)
         FH.write_file(folder_path=path, section_name="RWR_issue:", report=rwr_issues)
@@ -66,12 +75,13 @@ def get_zip_file_list(path):
 
 def run_auto_fa(args, path, project):
     current_project = PRJ.choose(project)
-    test_flow(path= path, project=project)
+    #test_flow(path=path, project=project)
     vtf_data = vtf_info(path)
     ctf_log_error(path, args.full_ctf, vtf_data)
-    smartReport(path, project_json=current_project.smartReport)
+    sres = smartReport(path, project_json=current_project.smartReport)
+    pdl_report(path)
     protocol_log_info(path, vtf_data)
-    emonitor_actions(path, args.amount_of_rwr)
+    emonitor_actions(path, args.amount_of_rwr, sres)
     FH.remove_quotes_from_file(path)
 
 
@@ -91,7 +101,10 @@ def main(args, path, remote_path, project):
     FH.copy_res(main_folder=copy_to, path=zip_folder, name=name)
     print("Done Auto FA.")
     print("delete zip")
-    FH.remove_file(path=save_path, file=name)
+    try:
+        FH.remove_file(file=save_path)
+    except Exception as e:
+        print(e)
     return zip
 
 
@@ -117,7 +130,6 @@ if __name__ == "__main__":
             print(f"done unziping {zip}")
             run_auto_fa(args, zip_folder, project=args.prject)
             FH.copy_res(main_folder=args.zip_path, path=zip_folder, name=name)
-
     else:
         run_auto_fa(args, args.path, project=args.project)
     print("Done Auto FA.")
