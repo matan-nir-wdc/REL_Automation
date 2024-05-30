@@ -17,21 +17,22 @@ def contains_number(strings):
 
 
 def get_fw_version_from_device(data, path):
-    '''
     fw = CSV.return_signle_event(data=data, header="name", value="whoami")
     ver = []
-    fw = fw['parameters'].str.split("|").to_list()
+    fw = fw['parameters'].to_list()
+    fw = fw[0].split(",")
     try:
-        ver.append(int(fw[0][0][2:]))
-        ver.append(int(fw[0][1][2:]))
-        ver.append(int(fw[0][2], 16))
-        ver = str(ver[0]) + str(ver[1]) + "." + str(ver[2])
+        str1 = fw[0][2:]
+        str2 = fw[1][2:]
+        ver.append(int(str1, 10))
+        ver.append(int(str2, 10))
+        ver.append(int(fw[2], 16))
+        ver = f"{str(ver[0])}{str(ver[1])}.{str(ver[2])}"
         FH.write_file(folder_path=path, section_name=f"FW Version", report=ver)
         print(ver)
     except IndexError as e:
         print(e)
-          '''
-    pass
+        pass
 
 
 def check_for_dme_issue(data, path):
@@ -156,7 +157,7 @@ def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2, sres=False):
             read_files.append(save_file)
             # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
             num_of_rwr = "" if rwr_number[num] == "0" else rwr_number[num]
-            rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\ATB_LOG_{num_of_rwr}.rwr" "{save_file}"'
+            rwr_cmd = f'"{emonitor}" -t -n1 "{decrypt_path}" "{path}\\ATB_LOG_{num_of_rwr}.rwr" "{save_file}"'
             print(rwr_cmd)
             p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=3)
             out = p.stdout.read(1)

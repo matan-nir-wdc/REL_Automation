@@ -14,9 +14,15 @@ def get_device_info(path):
         for line in lines:
             if "description: {" in line:
                 res = line
+            elif "cycleId=" in line:
+                tmp = line.split("=")
+                device_info_tmp['cycleId'] = int(re.search(r'\d+', tmp[1]).group())
             elif "Set Bus Mode to" in line:
                 tmp = line.split(">>>")
                 device_info_tmp['gear'] = int(re.search(r'\d+', tmp[1]).group())
+            elif "Elapsed time" in line:
+                tmp = line.split("time")
+                device_info_tmp['TTF'] = tmp[1].strip()
         if res:
             res = res.split("[")
             res[1] = res[1].split("]")[1]
@@ -77,7 +83,6 @@ def get_Command_UPIU(data):
                     return upiu
 
 
-
 def extract_event2_data(data):
     search = vtf_log
     for line in data:
@@ -113,6 +118,7 @@ def get_rel_from_data(path):
             voltage = line
     rel_err["Voltage"] = voltage
     return rel_err
+
 
 def get_test_name(path):
     try:

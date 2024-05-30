@@ -15,8 +15,11 @@ def pdl_report(path):
     FH.print_head_line("PDL")
     pdl = PDL.get_pdl_file(path)
     if pdl:
-        pdl_res = PDL.check_for_err_fail(pdl)
-        FH.write_file(folder_path=path, section_name="PDL:", report=pdl_res)
+        pdl_res, gear_data = PDL.check_for_err_fail(pdl)
+        if pdl_res:
+            FH.write_file(folder_path=path, section_name="PDL:", report=pdl_res)
+        if gear_data:
+            FH.write_file(folder_path=path, section_name="PCU_HBA_COUNTERS:", report=gear_data)
 
 
 def test_flow(path, project):
@@ -75,7 +78,7 @@ def get_zip_file_list(path):
 
 def run_auto_fa(args, path, project):
     current_project = PRJ.choose(project)
-    #test_flow(path=path, project=project)
+    test_flow(path=path, project=project)
     vtf_data = vtf_info(path)
     ctf_log_error(path, args.full_ctf, vtf_data)
     sres = smartReport(path, project_json=current_project.smartReport)
@@ -102,10 +105,10 @@ def main(args, path, remote_path, project):
     print("Done Auto FA.")
     print("delete zip")
     try:
-        FH.remove_file(file=save_path)
+        FH.remove_file(file=zip)
     except Exception as e:
         print(e)
-    return zip
+    return zip_folder
 
 
 if __name__ == "__main__":
@@ -116,7 +119,7 @@ if __name__ == "__main__":
     parser.add_argument('--full_ctf', action='store_true')
     parser.add_argument('--full_vtf', action='store_true')
     parser.add_argument('--zip_file', action='store_true', help="is the folder zipped")
-    parser.add_argument('--amount_of_rwr', default=2, help="amount of RWR file from the last")
+    parser.add_argument('--amount_of_rwr', default=1, help="amount of RWR file from the last")
     parser.add_argument('--project', type=str, choices=['SPA', 'OBERON'], required=True)
     args = parser.parse_args()
     if args.zip_path:
@@ -133,5 +136,3 @@ if __name__ == "__main__":
     else:
         run_auto_fa(args, args.path, project=args.project)
     print("Done Auto FA.")
-
-

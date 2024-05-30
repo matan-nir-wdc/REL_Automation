@@ -43,15 +43,23 @@ def get_all_zips_in_path(remote_host):
     folders = os.listdir()
     for folder in folders:
         current_path = os.getcwd() + "\\" + str(folder)
+        print(f"Getting folders from {current_path}")
         sub_folders = [f for f in os.listdir(current_path) if os.path.isdir(os.path.join(current_path, f))]
         for sub_folder in sub_folders:
             current_sub_path = current_path + "\\" + str(sub_folder)
-
-            zip_file = [f for f in os.listdir(current_sub_path) if
-                        os.path.isfile(os.path.join(current_sub_path, f)) and f.endswith('.zip')]
+            zip_file = []
+            do_fa =True
+            print(f"checking {current_sub_path}")
+            for file in os.listdir(current_sub_path):
+                # Check if any file ends with .txt
+                if file.endswith('.txt'):
+                    do_fa = False
+            if do_fa:
+                zip_file = [f for f in os.listdir(current_sub_path) if
+                            os.path.isfile(os.path.join(current_sub_path, f)) and f.endswith('.zip')]
             if len(zip_file) > 0:
                 zip_file = f"{current_sub_path}\\{zip_file[0]}"
-                print(zip_file)
+                print(f"adding {zip_file} to FA testing list")
                 zips.append(zip_file)
     return zips
 
@@ -195,3 +203,14 @@ def combine_files(first_file_path, sec_file_path):
     os.remove(sec_file_path)
     # Rename the dummy file as the original file
     os.rename(write_obj, first_file_path)
+
+
+def get_all_keys(nested_dict, parent_key=''):
+    res = {}
+    for k, v in nested_dict.items():
+        full_key = f"{parent_key}.{k}" if parent_key else k
+        if isinstance(v, dict):
+            res.update(get_all_keys(v, full_key))
+        else:
+            res[k] = v
+    return res

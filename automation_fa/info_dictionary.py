@@ -42,6 +42,7 @@ vtf_log = {
     "Lun": "Not Found",
     "response": "Need to Add",
     "TaskTag": "Not Found",
+
 }
 vtf_asc = {
     "asc": [],
@@ -73,5 +74,7 @@ device_info = {
     "flash_type": "Not Found",
     "type": "Not Found",
     "card_capacity": "Not Found",
-    "gear": "Not Found"
+    "gear": "Not Found",
+    "cycleId": "Not Found",
+    "TTF": "Not Found"
 }

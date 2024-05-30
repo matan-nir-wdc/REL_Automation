@@ -17,8 +17,6 @@ def get_smart_report(path, project_json):
             return
         data = LOG.get_json_data(file=file_path)
         data = data["ROTW_final"]
-        #main_key = list(data.keys())[0]
-        #data = data[f'{main_key}']
     for key in project_json.keys():
         if key in data:
             Smart_report[f'{key}'] = data[f'{key}']
