@@ -4,11 +4,13 @@ from FileHandler import write_file
 
 
 def load_test(project):
+    """
     with open("automation_fa/Jason_Value/test_flow.json", encoding="utf-8", mode="r") as js:
         data = js.read()
     data = json.loads(data)
     return data[f"{project}"]
-
+"""
+    pass
 
 def get_test_flow(path, project):
     test_flow = load_test(project=project)

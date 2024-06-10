@@ -7,6 +7,8 @@ import os.path
 import csv_handler as CSV
 from info_dictionary import rwr, rwr_files
 from ast import literal_eval
+import pandas as pd
+
 
 
 def contains_number(strings):
@@ -35,14 +37,19 @@ def get_fw_version_from_device(data, path):
         pass
 
 
-def check_for_dme_issue(data, path):
+def check_for_dme_issue(path, all_files, main_issue):
     print("Checking for DME issue")
-    dme_val_20_issue(data, path)
-    DME_NAC_issue(data, path)
+    li = []
+    for filename in all_files:
+        df = pd.read_csv(filename, index_col=None, header=0)
+        li.append(df)
+    data = pd.concat(li, axis=0, ignore_index=True)
+    main_issue = dme_val_20_issue(data, path, main_issue)
+    DME_NAC_issue(data, path, main_issue)
     print("Done checking for DME issue.")
 
 
-def dme_val_20_issue(data, path):
+def dme_val_20_issue(data, path, main_issue):
     event = "MPHY ISR PMI"
     val = "20"
     issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
@@ -55,7 +62,7 @@ def dme_val_20_issue(data, path):
             pmi_issue = ["-------------------------------------", "Only PMI found, FA logs clean",
                          "-------------------------------------"]
             pmi_issue = '\n'.join(pmi_issue)
-            new_content = pmi_issue + "\n\n" + original_content
+            new_content = pmi_issue + "\n\n" + original_content if main_issue else original_content
             with open(f"{path}\\REL_results.txt", 'w') as file:
                 file.write(new_content)
         FH.write_file(folder_path=path,
@@ -64,26 +71,29 @@ def dme_val_20_issue(data, path):
         return
     del index
     print("No PMI 0x20 issue found.")
+    return True
 
 
-def DME_NAC_issue(data, path):
+def DME_NAC_issue(data, path, main_issue):
     event = "lane0_falling"
     issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
     print(f"Found {len(issue)} Lane0_Falling")
-    if len(issue) > 999:
-        df = issue.iloc[0].to_string(index=False)
+    if len(issue) > 500000:
+        with open(f"{path}\\REL_results.txt", 'r') as file:
+            original_content = file.read()
+            lane0_falling_issue = ["-------------------------------------", "lane0_falling over 1K, FA logs clean",
+                         "-------------------------------------"]
+            lane0_falling_issue = '\n'.join(lane0_falling_issue)
+            if main_issue:
+                new_content = original_content
+            else:
+                new_content = lane0_falling_issue + "\n\n" + original_content
+            with open(f"{path}\\REL_results.txt", 'w') as file:
+                file.write(new_content)
         FH.write_file(folder_path=path,
-                      section_name=f"Found DME issue(Add Lane0_Falling to FAR), amount={len(df)}:", report="")
+                      section_name=f"Found DME issue(Add Lane0_Falling to FAR), amount={len(issue)}:", report="")
         print("Found Lane0_Falling issue.")
         return
-    event = "nac_received"
-    issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
-    print(f"Found {len(issue)} NAC_RECEIVED")
-    if len(issue) > 199:
-        df = issue.iloc[0].to_string(index=False)
-        FH.write_file(folder_path=path,
-                      section_name=f"Found DME issue(Add NAC_RECIEVED to FAR), amount={len(df)}:", report=df)
-        print("Found NAC_RECIEVED issue.")
 
 
 def get_prog_fail(data, path):
@@ -100,7 +110,6 @@ def get_prog_fail(data, path):
                 file.write(new_content)
                 return False
     return True
-
 
 def get_assert_file(original_data, data, path):
     index = CSV.get_index_by_value(data=data, header="issue1", value="System exception pt1")
@@ -129,6 +138,12 @@ def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2, sres=False):
         return None
     decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
     files = FH.getFilesPath(path=path, exception="rwr")
+    if len(files) == 1:
+        if os.path.getsize(files[0]) < 1000000:
+            print("Too Small RWR")
+            FH.write_file(folder_path=path, section_name="RWR Under 1M", report="")
+
+            return None, None
     tmp_files = []
     for file in files:
         file = file.split("\\")[-1]
@@ -145,7 +160,7 @@ def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2, sres=False):
         check_rwr = False
     elif "ATB_LOG.rwr" in files and len(files) < 3:
         rwr_files = files
-        rwr_number = rwr_number.appent("0")
+        rwr_number.append("0")
     else:
         rwr_files = files[((-1)*(amount_of_rwr)):]
         rwr_number = rwr_number[((-1)*(amount_of_rwr)):]
@@ -156,8 +171,8 @@ def run_emonitor(path="F:\\AutoFA", amount_of_rwr=2, sres=False):
             save_file = f"{path}\\temp_{rwr_number[num]}.csv"
             read_files.append(save_file)
             # rwr_cmd = f'"{emonitor}" -l -n1 "{decrypt_path}" "{path}\\{rwr}" "{save_file}"'
-            num_of_rwr = "" if rwr_number[num] == "0" else rwr_number[num]
-            rwr_cmd = f'"{emonitor}" -t -n1 "{decrypt_path}" "{path}\\ATB_LOG_{num_of_rwr}.rwr" "{save_file}"'
+            num_of_rwr = "" if rwr_number[num] == "0" else "_" + str(rwr_number[num])
+            rwr_cmd = f'"{emonitor}" -t -n1 "{decrypt_path}" "{path}\\ATB_LOG{num_of_rwr}.rwr" "{save_file}"'
             print(rwr_cmd)
             p = subprocess.Popen(rwr_cmd, stdout=subprocess.PIPE, bufsize=3)
             out = p.stdout.read(1)
@@ -175,6 +190,7 @@ def read_results(rwr_numbers, result_path, results_files, sres):
     FH.print_head_line(file_name="RWR")
     rwr_files_tmp = rwr_files.copy()
     rwr_issues = rwr.copy()
+    run_dme = True
     get_fw = True
     amount_of_issue = rwr.copy()
     for key in amount_of_issue:
@@ -185,19 +201,18 @@ def read_results(rwr_numbers, result_path, results_files, sres):
         print("Done reading the results.")
         if get_fw:
             print("Getting FW version from device")
-            get_fw_version_from_device(data=data, path=result_path)
+            #get_fw_version_from_device(data=data, path=result_path)
             get_fw = False
         run_dme = get_prog_fail(data=data, path=result_path)
         if sres:
             run_dme = False
-
         print('Start analysis:')
         new_df = data['name'].str.split('(', expand=True)
         new_df.columns = ['issue{}'.format(x + 1) for x in new_df.columns]
         for search in rwr.keys():
             print(f"Checking for {search} in the results.")
             issue = CSV.return_all_found_events(data=new_df, header='issue1', value=search, compare="str")
-            amount = CSV.get_amount_per_colum(data=issue, header='issue1', value=search)
+            amount = len(issue)
             if search == "exception":
                 print("Checking for assert issue:")
                 get_assert_file(original_data=data, data=issue, path=result_path)
@@ -208,14 +223,17 @@ def read_results(rwr_numbers, result_path, results_files, sres):
                 del issue
                 issue = combined_series_cat.tolist()
                 amount_of_issue[f'{search}'] = amount_of_issue[f'{search}'] + amount
-                if search in ["assert", "fatal", "exception", "uecc"]:
-                    run_dme = False
                 rwr_issues[f'{search}'] = rwr_issues[f'{search}'] + issue
-        if run_dme:
-            check_for_dme_issue(data=data, path=result_path)
-        FH.remove_file(file=f"{save_file}")
+        del data
+    for search in ["assert", "fatal", "exception", "uecc"]:
+        if int(amount_of_issue[f'{search}']) > 0:
+            run_dme = False
+            print(run_dme)
     for search in rwr.keys():
         rwr_issues[f'{search}'] = list(set(rwr_issues[f'{search}']))
         amount = amount_of_issue[f'{search}']
         rwr_issues[f'{search}'].append(f"amount = {amount}")
+    check_for_dme_issue(path=result_path, all_files=results_files, main_issue=run_dme)
+    for file in results_files:
+        FH.remove_file(file=file)
     return rwr_files_tmp, rwr_issues

@@ -181,9 +181,10 @@ def remove_quotes_from_file(path):
 def copy_res(main_folder, path, name):
     with open(f'{path}\\REL_result.txt', 'r') as file:
         data = file.readlines()
-        for line in data:
-            if "Only PMI found, FA logs clean" in line:
+        if "Only PMI found, FA logs clean" in data[1]:
                 name = "PMI ISSUE"
+        elif "lane0_falling over 1K, FA logs clean" in data[1]:
+            name = "NAC ISSUE"
     shutil.copy(f'{path}\\REL_result.txt', main_folder)
     try:
         os.rename(f"{main_folder}\\REL_result.txt", f"{main_folder}\\{name}.txt")

@@ -29,6 +29,7 @@ def get_smart_report(path, project_json):
     write_values = ' '.join(write_values)
     if write_values:
         FH.write_file(folder_path=path, section_name="", report=write_values + " Are high, please check!!!")
+        FH.write_file(folder_path=path, section_name="SmartReport:", report=Smart_report)
         return True
     FH.write_file(folder_path=path, section_name="SmartReport:", report=Smart_report)
     return False
