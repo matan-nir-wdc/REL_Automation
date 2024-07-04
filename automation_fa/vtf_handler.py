@@ -12,7 +12,13 @@ def get_device_info(path):
         with open(path, 'r') as data:
             lines = data.readlines()
         for line in lines:
-            if "description: {" in line:
+            if "Device UID string" in line:
+                tmp = line.split("string")
+                device_info_tmp['UID'] = tmp[1]
+            elif "CTF Version: " in line:
+                tmp = line.split("Version:")
+                device_info_tmp['CTFVersion'] = tmp[1].strip()
+            elif "description: {" in line:
                 res = line
             elif "cycleId=" in line:
                 tmp = line.split("=")
@@ -23,6 +29,7 @@ def get_device_info(path):
             elif "Elapsed time" in line:
                 tmp = line.split("time")
                 device_info_tmp['TTF'] = tmp[1].strip()
+
         if res:
             res = res.split("[")
             res[1] = res[1].split("]")[1]

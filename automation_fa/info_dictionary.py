@@ -42,6 +42,7 @@ vtf_log = {
     "Lun": "Not Found",
     "response": "Need to Add",
     "TaskTag": "Not Found",
+    "CTFVersion": "Not Found",
 
 }
 vtf_asc = {
@@ -60,6 +61,7 @@ rwr = {
     "GBB": [],
     "exception": [],
     "invalidate": [],
+    "sdr": []
 }
 rwr_files = {
     "assert_files": [],
