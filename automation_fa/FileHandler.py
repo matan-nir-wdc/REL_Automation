@@ -6,6 +6,7 @@ import pathlib
 import shutil
 import zipfile
 from tqdm import tqdm
+from typing import List, Dict, Union
 
 
 def create_folder(folder_path="F:\\AutoFA\\tmp"):
@@ -18,9 +19,8 @@ def create_folder(folder_path="F:\\AutoFA\\tmp"):
         print("An error occurred:", str(e))
 
 
-def get_all_folders_in_path(path):
-    folders = [entry.path for entry in os.scandir(path) if entry.is_dir()]
-    return folders
+def get_all_folders_in_path(path: str) -> List[str]:
+    return [entry.path for entry in os.scandir(path) if entry.is_dir()]
 
 
 def get_zip_in_path(remote_host):
@@ -89,9 +89,13 @@ def copy_from_remote_path(remote_path, folder_path=""):
 
 
 def write_file(folder_path, section_name, report, file_name="REL_results.txt"):
-    with open(f'{folder_path}\\{file_name}', 'a', encoding='utf-8') as f:
+    with open(f'{folder_path}\\{file_name}', 'a+', encoding='utf-8') as f:
         f.write(section_name + "\n")
-        if isinstance(report, list):
+        if all(isinstance(item, tuple) for item in report):
+            for item in report:
+                f.write(str(item))
+                f.write("\n")
+        elif isinstance(report, list):
             json_report = '\n'.join(report)
             f.write(str(json_report))
         elif isinstance(report, dict):
@@ -114,33 +118,29 @@ def getFilePath(original_file_path, file_name):
     return res
 
 
-def getFilesPath(path, exception):
-    files = []
-    for file in os.listdir(f"{path}"):
-        if file.endswith(f".{exception}"):
-            files.append(os.path.join(f"{path}", file))
-    return files
+def getFilesPath(path: str, exception: str) -> List[str]:
+    return [str(file) for file in pathlib.Path(path).glob(f'*.{exception}')]
 
 
-def extract_event_from_file(file_path, target_phrase):
+def extract_event_from_file(file_path: str, target_phrase: str) -> List[str]:
     try:
-        found = []
         with open(file_path, 'r') as file:
             lines = file.readlines()
-            for line_num, line in enumerate(lines):
-                if target_phrase in line.lower():
-                    found.append(line_num)
-                    if len(found) == 2:
-                        return lines[found[0]:found[1]]
+        found = [i for i, line in enumerate(lines) if target_phrase.lower() in line.lower()]
+        if len(found) >= 2:
+            return lines[found[0]:found[1]]
+        return []
     except Exception as e:
         print(f"An error occurred: {e}")
+        return []
 
 
-def remove_file(file):
-    permissions = 0o777  # This sets read, write, execute permissions for owner and read, execute permissions for group and others
-    os.chmod(f"{file}", permissions)
-    file_to_rem = pathlib.Path(f"{file}")
-    file_to_rem.unlink()
+def remove_file(file_path: str):
+    try:
+        os.chmod(file_path, 0o777)
+        pathlib.Path(file_path).unlink()
+    except Exception as e:
+        print(f"An error occurred while deleting the file: {e}")
 
 
 def check_if_fail(zip_file, file_name):
@@ -175,7 +175,7 @@ def remove_quotes_from_file(path):
     with open(f'{path}\\REL_results.txt', 'r') as f, open(f'{path}\\REL_result.txt', 'w') as fo:
         for line in f:
             fo.write(line.replace('"', '').replace("'", ""))
-    remove_file(file=f'{path}\\REL_results.txt')
+    remove_file(file_path=f'{path}\\REL_results.txt')
 
 
 def copy_res(main_folder, path, name):
@@ -186,6 +186,7 @@ def copy_res(main_folder, path, name):
         elif "lane0_falling over 1K, FA logs clean" in data[1]:
             name = "NAC ISSUE"
     shutil.copy(f'{path}\\REL_result.txt', main_folder)
+    shutil.copy(f'{path}\\FAST_SCAN.txt', main_folder)
     try:
         os.rename(f"{main_folder}\\REL_result.txt", f"{main_folder}\\{name}.txt")
     except Exception as e:
@@ -194,16 +195,13 @@ def copy_res(main_folder, path, name):
 
 
 def combine_files(first_file_path, sec_file_path):
-    # Open the original file in read mode and the dummy file in write mode
-    with open(first_file_path, '') as write_obj, open(sec_file_path, 'r') as read_obj:
-        for line in write_obj:
+    # Open the first file in append mode and the second file in read mode
+    with open(first_file_path, 'a') as write_obj, open(sec_file_path, 'r') as read_obj:
+        for line in read_obj:
             write_obj.write(line)
-        for line in first_file_path:
-            write_obj.write(line)
-    # Remove the original file
+
+    # Remove the second file
     os.remove(sec_file_path)
-    # Rename the dummy file as the original file
-    os.rename(write_obj, first_file_path)
 
 
 def get_all_keys(nested_dict, parent_key=''):

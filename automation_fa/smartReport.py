@@ -3,20 +3,16 @@ import logHandler as LOG
 
 
 def get_smart_report(path, project_json):
-    data = ""
     Smart_report = project_json
     SRF = FH.get_all_folders_in_path(path=path)
-    file_path = FH.getFilePath(original_file_path=SRF[0], file_name="SmartReport.json")
-    if file_path:
-        data = LOG.get_json_data(file=file_path)
-        data = data["ROTW_final"]
-    elif not file_path:
-        file_path = FH.getFilePath(original_file_path=path, file_name="SmartReport_Test*.json")
-        if not file_path:
-            print("No smart report was found")
-            return
-        data = LOG.get_json_data(file=file_path)
-        data = data["ROTW_final"]
+    for path in SRF:
+        file_path = FH.getFilePath(original_file_path=path, file_name="SmartReport.json")
+        if file_path:
+            data = LOG.get_json_data(file=file_path)
+            data = data["ROTW_final"]
+    if not data:
+        return False
+
     for key in project_json.keys():
         if key in data:
             Smart_report[f'{key}'] = data[f'{key}']

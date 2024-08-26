@@ -14,12 +14,13 @@ def get_pdl_file(path):
         return None
 
 
+
 def get_gear_info(data):
     gear_info = []
     gear_change = {"PmcByHostCount": 0, "PmcByDeviceCount": 0}
     device_rx_error = {"PaLane0ErrCount": 0, "PaLane1ErrCount": 0, "DlCrcErrCount": 0, "DlFrameErrCount": 0}
     logical_error = {"PaLineResetErrCount": 0, "DlTcxRplyTimrExpRcvErrCount": 0, "DlAfcxReqstTimrExpErrCount": 0,
-                     "DlFcxProtectionTimrExpErrCount": 0}
+                    "DlFcxProtectionTimrExpErrCount": 0}
     for i, gear_data in enumerate(data):
         tmp_gear_data = gear_data.copy()
         for key in gear_change.keys():
@@ -30,7 +31,7 @@ def get_gear_info(data):
         if all(value == 0 for value in gear_data.values()):
             continue
         gear_info.append("-" * 30)
-        gear_info.append(f"Gear {i + 1}:")
+        gear_info.append(f"Gear {i+1}:")
         gear_info.append("-" * 30)
         gear_info.append("[Gear change]")
         for key in tmp_gear_data.keys():
