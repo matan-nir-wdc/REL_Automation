@@ -5,11 +5,12 @@ import logHandler as LOG
 def get_smart_report(path, project_json):
     Smart_report = project_json
     SRF = FH.get_all_folders_in_path(path=path)
-    for path in SRF:
-        file_path = FH.getFilePath(original_file_path=path, file_name="SmartReport.json")
+    for new_path in SRF:
+        file_path = FH.getFilePath(original_file_path=new_path, file_name="SmartReport.json")
         if file_path:
             data = LOG.get_json_data(file=file_path)
             data = data["ROTW_final"]
+            break
     if not data:
         return False
 

@@ -10,6 +10,134 @@ from info_dictionary import rwr
 from typing import List, Union
 
 
+def get_emonitor_path() -> Union[str, None]:
+    emonitor = "C:\\Program Files (x86)\\Default Company Name\\eMonitorSetup\\eMonitor.exe"
+    return emonitor if os.path.exists(emonitor) else None
+
+
+def process_files(files: List[str]) -> str:
+    rwr_number = sorted([int(x) for x in re.findall(r'\d+', ' '.join(files))])
+    if "ATB_LOG.rwr" in files:
+        return "ATB_LOG.rwr"
+    else:
+        return f"ATB_LOG_{rwr_number[0]}.rwr"
+
+
+def run_emonitor(path: str = "F:\\AutoFA", sres: bool = False):
+    emonitor = get_emonitor_path()
+    if not emonitor:
+        print("No eMonitor MST version found.")
+        return None
+
+    decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
+    files = FH.getFilesPath(path=path, exception="rwr")
+
+    if len(files) == 1 and os.path.getsize(files[0]) < 1000000:
+        print("Too Small RWR")
+        FH.write_file(folder_path=path, section_name="RWR Under 1M", report="")
+        return None, None
+
+    files = [file.split("\\")[-1] for file in files]
+    rwr_file = process_files(files)
+
+    if rwr_file:
+        if read_rwr_files(emonitor, decrypt_path, path, rwr_file):
+            return read_results(result_path=path, check_error=files)
+    print("Could not read RWR files, please check")
+    return None
+
+
+def read_results(result_path: str, check_error: [str]) -> dict:
+    FH.print_head_line(file_name="RWR")
+    rwr_issues = rwr.copy()
+    amount_of_issue = {key: 0 for key in rwr}
+    print("Checking RWR results.")
+    data = CSV.get_data(file=f"{result_path}\\FAST_SCAN.csv", encoding='utf-8', fix_header=False)
+    data = data.loc[:, ~data.columns.str.contains('%')]
+    name = "amount"
+    data = data.rename(columns={data.columns[3]: name})
+    print("Done reading the results.")
+    analyze_data(path=result_path, data=data, rwr_issues=rwr_issues, amount_of_issue=amount_of_issue)
+    check_sign(path=result_path)
+    if any(amount_of_issue[issue] > 0 for issue in ["assert", "fatal", "exception", "uecc"]):
+        if amount_of_issue["exception"] > 1:
+            for val in rwr_issues["exception"]:
+                if "System exception pt1" in val:
+                    get_assert_file(data=data, path=result_path, check_error=check_error)
+    for search in rwr.keys():
+        rwr_issues[search].append(f"amount = {amount_of_issue[search]}")
+    compare_process(data, path=result_path)
+    check_for_value_issue(data, path=result_path, check_error=check_error)
+    return rwr_issues
+
+
+def analyze_data(path, data, rwr_issues, amount_of_issue):
+    keywords = rwr.keys()
+    print("Checking the result")
+    for row in data.itertuples(index=True, name='Pandas'):
+        # Split the name by '(' and take the first part
+        first_part = row.name.split('(')[0].strip()
+        # Check if the first part contains any of the keywords
+        for key in keywords:
+            if key in str(first_part).lower():
+                rwr_issues[key].append(f"[{row.name}], amount: {row.amount}")
+                amount_of_issue[key] = amount_of_issue[key] + int(row.amount)
+
+
+def check_sign(path):
+    issue_apear_more_than_standart = []
+    # Load the Excel file
+    # Specify the path to the Excel and CSV files
+    excel_file = "automation_fa/issue_by_amount.xlsx"
+    csv_file = f"{path}/FAST_SCAN.csv"  # Adjust 'path' as needed
+
+    # Load the Excel file
+    issue_sign = pd.read_excel(excel_file)
+    # Load the CSV file
+    csv_df = pd.read_csv(csv_file)
+
+    # Rename the 4th column (column D) to 'amount'
+    csv_df.rename(columns={csv_df.columns[3]: 'amount'}, inplace=True)
+
+    # Save the modified DataFrame back to the CSV file
+    csv_df.to_csv(csv_file, index=False)
+
+    # Iterate over each value in the 'name' column of the Excel file
+    for index, row in issue_sign.iterrows():
+        excel_name = row['name'].lower()
+        amount_need = row['amount']
+
+        # Check if the Excel name is contained in any of the CSV names
+        for _, csv_row in csv_df.iterrows():
+            csv_name = csv_row['name'].lower()
+            amount_found = csv_row['amount']
+
+            if excel_name in csv_name and amount_found >= amount_need:
+                issue_apear_more_than_standart.append(f"[{excel_name}], amount: " + str(amount_found))
+    FH.write_file(folder_path=path, section_name="Issues that appear more than approved:\n",
+                  report=issue_apear_more_than_standart)
+    print("finish check_sign")
+
+
+def read_rwr_files(emonitor: str, decrypt_path: str, path: str, rwr_file: str) -> bool:
+    save_file = f"{path}\\FAST_SCAN.csv"
+    rwr_cmd = f'"{emonitor}" -s "{decrypt_path}" "{path}\\{rwr_file}" "{save_file}"'
+    print(rwr_cmd)
+    try:
+        run_subprocess(rwr_cmd)
+        print("Done Reading All RWR files.")
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+
+def run_subprocess(command: str):
+    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=3) as p:
+        for out in iter(lambda: p.stdout.read(1), b''):
+            sys.stdout.write(out.decode("utf-8"))
+            sys.stdout.flush()
+
 
 def compare_process(data, path):
     print("Checking for unfinished process")
@@ -18,9 +146,7 @@ def compare_process(data, path):
     # Extract the part of 'name' before '['
     df1 = start.assign(split_name=start['name'].str.split('[').str[0])
     df2 = end.assign(split_name=end['name'].str.split('[').str[0])
-
     results = []
-
     # Iterate through each row in df1
     for _, row1 in df1.iterrows():
         # Find the corresponding row in df2
@@ -56,37 +182,37 @@ def get_assert_file(data, path, check_error):
         print("FOUND ASSERT ISSUE!!!")
 
 
+def check_for_value_issue(data, path, check_error):
+    check_error.reverse()
+    print("Checking for Value issue")
+    issue_apear = []
+    value_needed = []
+    found_issues = []
+    excel_file = "automation_fa/issue_by_sign.xlsx"
+    # Load the Excel file
+    issue_sign = pd.read_excel(excel_file)
+    # Load the CSV file
+    # Iterate over each value in the 'name' column of the Excel file
+    for index, row in issue_sign.iterrows():
+        excel_name = row['name'].lower()
+        value = row['value']
 
-def check_for_dme_issue(data, path, main_issue, check_error):
-    print("Checking for DME issue")
-    main_issue = dme_val_20_issue(data, path=path, main_issue=main_issue, check_error=check_error)
-    DME_NAC_issue(data, path, main_issue)
-    print("Done checking for DME issue.")
+        # Check if the Excel name is contained in any of the CSV names
+        for _, data_check in data.iterrows():
+            csv_name = data_check['name'].lower()
 
+            if excel_name in csv_name:
+                issue_apear.append(excel_name)
+                value_needed.append(value)
 
-def dme_val_20_issue(data, path, main_issue, check_error):
-    event = "pcu: mphy isr pmi"
-    issue = CSV.return_all_found_events(data=data, header='name', value=event, compare="str")
-    if len(issue) < 1:
-        print("No PMI 0x20 issue found.")
-        return True
-    res = run_full_check(files=check_error, path=path, issue_name="pmi", event=event)
-    val = "20"
-    new_df = res['parameters'].str.endswith(f'{val}').to_frame()
-    is_pmi = new_df.index[new_df['parameters'] == True].tolist()
-    if any(is_pmi):
-        dme = new_df.to_string()
-        with open(f"{path}\\REL_results.txt", 'r') as file:
-            original_content = file.read()
-            pmi_issue = ["-------------------------------------", "Only PMI found, FA logs clean",
-                         "-------------------------------------"]
-            pmi_issue = '\n'.join(pmi_issue)
-            new_content = pmi_issue + "\n\n" + original_content if main_issue else original_content
-            with open(f"{path}\\REL_results.txt", 'w') as file:
-                file.write(new_content)
-            FH.write_file(folder_path=path,
-                          section_name=f"Found DME issue(Add 'PMI x020' to FAR, amount={len(is_pmi)}):", report=dme)
-
+    for value, event in zip(value_needed, issue_apear):
+        res = run_full_check(files=check_error, path=path, issue_name="check_sign", event=event)
+        if not res.empty:
+            new_df = res['parameters'].str.endswith(f'{value}').to_frame()
+            is_found = new_df.index[new_df['parameters'] == True].tolist()
+            if any(is_found):
+                found_issues.append(res.to_string())
+        FH.write_file(folder_path=path, section_name=f"Found issue by sign:", report=found_issues)
 
 
 def run_full_check(files, path, issue_name, event):
@@ -94,7 +220,7 @@ def run_full_check(files, path, issue_name, event):
     save_file = f"{path}\\{issue_name}.csv"
     check_file = f"{path}\\check.csv"
     decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
-    df = None
+    df = "0"
     for file in files:
         rwr_cmd = f'"{emonitor}" -s -n1 "{decrypt_path}" "{path}\\{file}" "{save_file}"'
         print(rwr_cmd)
@@ -109,55 +235,8 @@ def run_full_check(files, path, issue_name, event):
             print("Filtering 1 RWR file")
             res = CSV.get_data(file=f"{check_file}")
             filtered_df = res[res['name'].str.lower().str.contains(event)]
-            if not df:
-                df = filtered_df.copy()
-            else:
-                df = pd.concat([df, filtered_df.copy()], axis=0, ignore_index=True)
-    return df
-
-
-def DME_NAC_issue(data, path, main_issue):
-    event = "lane0_falling or nac_received"
-    filtered_df = data[data['name'].str.lower().str.contains(event)]
-    if len(filtered_df) < 1:
-        return
-    nac_issue_amount = filtered_df.iloc[0].tolist()
-    nac_issue_amount = nac_issue_amount[3]
-    FH.write_file(folder_path=path,
-                  section_name=f"Found {nac_issue_amount} NAC_recieved", report="")
-    print(f"Found {nac_issue_amount} Lane0_Falling")
-    if nac_issue_amount > 500000:
-        with open(f"{path}\\REL_results.txt", 'r') as file:
-            original_content = file.read()
-            lane0_falling_issue = ["-------------------------------------", "lane0_falling over 1K, FA logs clean",
-                         "-------------------------------------"]
-            lane0_falling_issue = '\n'.join(lane0_falling_issue)
-            if main_issue:
-                new_content = original_content
-            else:
-                new_content = lane0_falling_issue + "\n\n" + original_content
-            with open(f"{path}\\REL_results.txt", 'w') as file:
-                file.write(new_content)
-        FH.write_file(folder_path=path,
-                      section_name=f"Found DME issue(Add Lane0_Falling to FAR), amount={nac_issue_amount}:", report="")
-        print("Found Lane0_Falling issue.")
-        return
-
-
-def get_prog_fail(data, path):
-    print("Search for prog fail")
-    value = "ps: eh  pf state"
-    issue = CSV.return_all_found_events(data=data, header='name', value=value, compare="str")
-    if len(issue) > 0:
-        print("Found progFail")
-        issue = issue.to_string()
-        with open(f"{path}\\REL_results.txt", 'r') as file:
-            original_content = file.read()
-            new_content = f"Found progFail:\n" + issue + original_content + "\n\n"
-            with open(f"{path}\\REL_results.txt", 'w') as file:
-                file.write(new_content)
-                return False
-    return True
+            return filtered_df
+    return None
 
 
 def get_fw_version_from_device(data, path):
@@ -177,99 +256,3 @@ def get_fw_version_from_device(data, path):
     except IndexError as e:
         print(e)
         pass
-
-
-def run_emonitor(path: str = "F:\\AutoFA", amount_of_rwr: int = 2, sres: bool = False):
-    emonitor = get_emonitor_path()
-    if not emonitor:
-        print("No eMonitor MST version found.")
-        return None
-
-    decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
-    files = FH.getFilesPath(path=path, exception="rwr")
-
-    if len(files) == 1 and os.path.getsize(files[0]) < 1000000:
-        print("Too Small RWR")
-        FH.write_file(folder_path=path, section_name="RWR Under 1M", report="")
-        return None, None
-
-    files = [file.split("\\")[-1] for file in files]
-    rwr_file = process_files(files, amount_of_rwr)
-
-    if rwr_file:
-        if read_rwr_files(emonitor, decrypt_path, path, rwr_file):
-            return read_results(result_path=path, sres=sres, check_error=files)
-    print("Could not read RWR files, please check")
-    return None
-
-
-def get_emonitor_path() -> Union[str, None]:
-    emonitor = "C:\\Program Files (x86)\\Default Company Name\\eMonitorSetup\\eMonitor.exe"
-    return emonitor if os.path.exists(emonitor) else None
-
-
-def process_files(files: List[str], amount_of_rwr: int) -> str:
-    rwr_number = sorted([int(x) for x in re.findall(r'\d+', ' '.join(files))])
-    if "ATB_LOG.rwr" in files:
-        return "ATB_LOG.rwr"
-    else:
-        return f"ATB_LOG_{rwr_number[0]}.rwr"
-
-
-def read_rwr_files(emonitor: str, decrypt_path: str, path: str, rwr_file: str) -> bool:
-    save_file = f"{path}\\FAST_SCAN.csv"
-    rwr_cmd = f'"{emonitor}" -s "{decrypt_path}" "{path}\\{rwr_file}" "{save_file}"'
-    print(rwr_cmd)
-    try:
-        run_subprocess(rwr_cmd)
-        print("Done Reading All RWR files.")
-        return True
-    except Exception as e:
-        print(e)
-        return False
-
-
-def run_subprocess(command: str):
-    with subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=3) as p:
-        for out in iter(lambda: p.stdout.read(1), b''):
-            sys.stdout.write(out.decode("utf-8"))
-            sys.stdout.flush()
-
-
-def read_results(result_path: str, sres: bool, check_error: [str]) -> dict:
-    FH.print_head_line(file_name="RWR")
-    rwr_issues = rwr.copy()
-    amount_of_issue = {key: 0 for key in rwr}
-    print("Checking RWR results.")
-    data = CSV.get_data(file=f"{result_path}\\FAST_SCAN.csv", encoding='utf-8', fix_header=False)
-    data = data.loc[:, ~data.columns.str.contains('%')]
-    name = "amount"
-    data = data.rename(columns={data.columns[3]: name})
-    print("Done reading the results.")
-    sres = get_prog_fail(data=data, path=result_path) and not sres
-    analyze_data(data, rwr_issues, amount_of_issue)
-    if any(amount_of_issue[issue] > 0 for issue in ["assert", "fatal", "exception", "uecc"]):
-        sres = False
-        if amount_of_issue["exception"] > 1:
-            for val in rwr_issues["exception"]:
-                if "System exception pt1" in val:
-                    get_assert_file(data=data, path=result_path, check_error=check_error)
-    for search in rwr.keys():
-        rwr_issues[search].append(f"amount = {amount_of_issue[search]}")
-    compare_process(data, path=result_path)
-    check_for_dme_issue(data, path=result_path, main_issue=sres, check_error=check_error)
-    return rwr_issues
-
-
-def analyze_data(data, rwr_issues, amount_of_issue):
-    keywords = rwr.keys()
-    print("Checking the result")
-    for row in data.itertuples(index=True, name='Pandas'):
-        # Split the name by '(' and take the first part
-        first_part = row.name.split('(')[0].strip()
-        # Check if the first part contains any of the keywords
-        for key in keywords:
-            if key in str(first_part).lower():
-                rwr_issues[key].append(f"[{row.name}], amount: {row.amount}")
-                amount_of_issue[key] = amount_of_issue[key] + int(row.amount)
-
