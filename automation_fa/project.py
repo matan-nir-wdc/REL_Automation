@@ -13,8 +13,15 @@ class Oberon:
         self.protocol_log = "protocol*.csv"
 
 
+class Ophilia:
+    def __init__(self):
+        self.smartReport = info_dictionary.SmartReportOberon
+        self.protocol_log = "protocol*.csv"
+
 def choose(project):
     if project == "SPA":
         return SFP()
     if project == "OBERON":
         return Oberon()
+    if project == "OPHILIA":
+        return Ophilia()

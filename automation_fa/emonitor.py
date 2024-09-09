@@ -32,6 +32,10 @@ def run_emonitor(path: str = "F:\\AutoFA", sres: bool = False):
     decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
     files = FH.getFilesPath(path=path, exception="rwr")
 
+    if len(files) <1:
+        print("No RWR")
+        return None, None
+
     if len(files) == 1 and os.path.getsize(files[0]) < 1000000:
         print("Too Small RWR")
         FH.write_file(folder_path=path, section_name="RWR Under 1M", report="")
@@ -88,7 +92,9 @@ def check_sign(path):
     issue_apear_more_than_standart = []
     # Load the Excel file
     # Specify the path to the Excel and CSV files
-    excel_file = "automation_fa/issue_by_amount.xlsx"
+    app_path = os.path.dirname(os.path.abspath(__file__))
+    excel_file = f"{app_path}/issue_by_amount.xlsx"
+
     csv_file = f"{path}/FAST_SCAN.csv"  # Adjust 'path' as needed
 
     # Load the Excel file
@@ -188,7 +194,8 @@ def check_for_value_issue(data, path, check_error):
     issue_apear = []
     value_needed = []
     found_issues = []
-    excel_file = "automation_fa/issue_by_sign.xlsx"
+    app_path = os.path.dirname(os.path.abspath(__file__))
+    excel_file = f"{app_path}/issue_by_sign.xlsx"
     # Load the Excel file
     issue_sign = pd.read_excel(excel_file)
     # Load the CSV file
@@ -212,7 +219,9 @@ def check_for_value_issue(data, path, check_error):
             is_found = new_df.index[new_df['parameters'] == True].tolist()
             if any(is_found):
                 found_issues.append(res.to_string())
-        FH.write_file(folder_path=path, section_name=f"Found issue by sign:", report=found_issues)
+        if len(found_issues) > 0:
+            FH.write_file(folder_path=path, section_name=f"Found issue by sign:", report=found_issues)
+        print("Done checking for Value issue")
 
 
 def run_full_check(files, path, issue_name, event):

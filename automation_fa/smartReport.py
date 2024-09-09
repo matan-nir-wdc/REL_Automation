@@ -5,6 +5,7 @@ import logHandler as LOG
 def get_smart_report(path, project_json):
     Smart_report = project_json
     SRF = FH.get_all_folders_in_path(path=path)
+    data = ""
     for new_path in SRF:
         file_path = FH.getFilePath(original_file_path=new_path, file_name="SmartReport.json")
         if file_path:

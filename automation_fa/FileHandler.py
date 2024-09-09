@@ -144,11 +144,14 @@ def remove_file(file_path: str):
 
 
 def check_if_fail(zip_file, file_name):
-    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-        with zip_ref.open(file_name) as file:
-            content = file.read().decode('utf-8')
-            if "signature: TestStatus.PASS" in content:
-                return False
+    try:
+        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+            with zip_ref.open(file_name) as file:
+                content = file.read().decode('utf-8')
+                if "signature: TestStatus.PASS" in content:
+                    return False
+    except Exception as e:
+        return False
     return True
 
 
@@ -186,7 +189,7 @@ def copy_res(main_folder, path, name):
         elif "lane0_falling over 1K, FA logs clean" in data[1]:
             name = "NAC ISSUE"
     shutil.copy(f'{path}\\REL_result.txt', main_folder)
-    shutil.copy(f'{path}\\FAST_SCAN.txt', main_folder)
+    shutil.copy(f'{path}\\FAST_SCAN.csv', main_folder)
     try:
         os.rename(f"{main_folder}\\REL_result.txt", f"{main_folder}\\{name}.txt")
     except Exception as e:
