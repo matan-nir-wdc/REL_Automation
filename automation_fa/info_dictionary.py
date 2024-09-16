@@ -42,6 +42,8 @@ vtf_log = {
     "Lun": "Not Found",
     "response": "Need to Add",
     "TaskTag": "Not Found",
+    "CTFVersion": "Not Found",
+
 }
 vtf_asc = {
     "asc": [],
