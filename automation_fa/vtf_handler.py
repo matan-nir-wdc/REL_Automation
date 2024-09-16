@@ -12,25 +12,58 @@ def get_device_info(path):
         with open(path, 'r') as data:
             lines = data.readlines()
         for line in lines:
-            if "description: {" in line:
+            if "Device UID string" in line:
+                tmp = line.split("string")
+                device_info_tmp['UID'] = tmp[1].strip()
+            elif "Test Name:"in line:
+                tmp = line.split("\\")[-1].split(".")[0]
+                device_info_tmp['TestName'] = tmp.strip()
+            elif "HostName:" in line and not "SDR HostName:" in line:
+                tmp = line.split(":")[1]
+                device_info_tmp['HostName'] = tmp.strip()
+            elif "SDR HostName:" in line:
+                tmp = line.split(":")
+                device_info_tmp['Adapter'] = tmp[1].strip()
+            elif "ctf version" in line.lower():
+                tmp = line.split(":")
+                device_info_tmp['CTFVersion'] = tmp[1].strip()
+            elif " ExecutionId:" in line:
+                execution_id = re.search(r"ExecutionId:(\d+)", line)
+                # If a match is found, extract the integer value
+                execution_id_value = int(execution_id.group(1)) if execution_id else None
+                device_info_tmp['ExecutionId'] = execution_id_value
+            elif "description: {" in line:
                 res = line
+            elif "cycleId=" in line:
+                tmp = line.split("=")
+                cycle_id_match = re.search(r'\d+', tmp[1])
+                if cycle_id_match:
+                    device_info_tmp['cycleId'] = int(cycle_id_match.group())
             elif "Set Bus Mode to" in line:
                 tmp = line.split(">>>")
-                device_info_tmp['gear'] = int(re.search(r'\d+', tmp[1]).group())
+                gear_match = re.search(r'\d+', tmp[1])
+                if gear_match:
+                    device_info_tmp['gear'] = int(gear_match.group())
+            elif "Elapsed time" in line:
+                tmp = line.split("time")
+                device_info_tmp['TTF'] = tmp[1].strip()
+
         if res:
-            res = res.split("[")
-            res[1] = res[1].split("]")[1]
-            res[2] = res[2].split("]")[1]
-            data_info = (res[0] + res[1] + res[2]).split(",")
-            for info in data_info:
-                for key in device_info_tmp.keys():
-                    if key in info:
-                        if key == "type" and "flash_type" not in info:
-                            device_info_tmp["type"] = info.split(":")[1]
-                        elif key != "type":
-                            device_info_tmp[key] = info.split(":")[1]
-    except ValueError as e:
-        print(f"error: {e}")
+            res_split = res.split("[")
+            if len(res_split) >= 3:
+                res_split_1 = res_split[1].split("]")[1].strip()
+                res_split_2 = res_split[2].split("]")[1].strip()
+                data_info = (res_split[0] + res_split_1 + res_split_2).split(",")
+                for info in data_info:
+                    for key in device_info_tmp.keys():
+                        if key in info:
+                            info_value = info.split(":")[1].strip()
+                            if key == "type" and "flash_type" not in info:
+                                device_info_tmp["type"] = info_value
+                            elif key != "type":
+                                device_info_tmp[key] = info_value
+    except (ValueError, IndexError, AttributeError) as e:
+        print(f"Error: {e}")
         return device_info_tmp
     return device_info_tmp
 
@@ -77,7 +110,6 @@ def get_Command_UPIU(data):
                     return upiu
 
 
-
 def extract_event2_data(data):
     search = vtf_log
     for line in data:
@@ -113,6 +145,7 @@ def get_rel_from_data(path):
             voltage = line
     rel_err["Voltage"] = voltage
     return rel_err
+
 
 def get_test_name(path):
     try:

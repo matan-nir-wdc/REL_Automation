@@ -8,6 +8,18 @@ import ProtocolLog as PL
 import smartReport as SR
 import ctf_handler as CTF
 import test_flow_handler as TFH
+import pdl_handler as PDL
+
+
+def pdl_report(path):
+    FH.print_head_line("PDL")
+    pdl = PDL.get_pdl_file(path)
+    if pdl:
+        pdl_res, gear_data = PDL.check_for_err_fail(pdl)
+        if pdl_res:
+            FH.write_file(folder_path=path, section_name="PDL:", report=pdl_res)
+        if gear_data:
+            FH.write_file(folder_path=path, section_name="PCU_HBA_COUNTERS:", report=gear_data)
 
 
 def test_flow(path, project):
@@ -40,11 +52,11 @@ def smartReport(main_folder, project_json):
     SR.get_smart_report(main_folder, project_json=project_json)
 
 
-def emonitor_actions(path, amount_of_rwr):
+def emonitor_actions(path):
+    rwr_issues = None
     FH.print_head_line("RWR Fast Scan")
-    rwr_files, rwr_issues = EMonitor.run_emonitor(path, amount_of_rwr)
+    rwr_issues = EMonitor.run_emonitor(path)
     if rwr_issues:
-        FH.write_file(folder_path=path, section_name="RWR_Files:", report=rwr_files)
         FH.write_file(folder_path=path, section_name="RWR_issue:", report=rwr_issues)
 
 
@@ -64,15 +76,17 @@ def get_zip_file_list(path):
     return zip_files
 
 
-def run_auto_fa(args, path, project):
+def run_auto_fa(path, project, remote=False):
     current_project = PRJ.choose(project)
-    test_flow(path= path, project=project)
+    #test_flow(path=path, project=project)
     vtf_data = vtf_info(path)
-    ctf_log_error(path, args.full_ctf, vtf_data)
+    ctf_log_error(path, True, vtf_data)
     smartReport(path, project_json=current_project.smartReport)
+    pdl_report(path)
     protocol_log_info(path, vtf_data)
-    emonitor_actions(path, args.amount_of_rwr)
-    FH.remove_quotes_from_file(path)
+    emonitor_actions(path)
+    if not remote:
+        FH.remove_quotes_from_file(path)
 
 
 def main(args, path, remote_path, project):
@@ -87,12 +101,15 @@ def main(args, path, remote_path, project):
     print("start unzip")
     FH.unzip(zip_file=zip, extract_folder=zip_folder)
     print(f"done unziping {zip}")
-    run_auto_fa(args, zip_folder, project)
+    run_auto_fa(path=zip_folder, project=project)
     FH.copy_res(main_folder=copy_to, path=zip_folder, name=name)
     print("Done Auto FA.")
     print("delete zip")
-    FH.remove_file(path=save_path, file=name)
-    return zip
+    try:
+        FH.remove_file(file_path=zip)
+    except Exception as e:
+        print(e)
+    return zip_folder
 
 
 if __name__ == "__main__":
@@ -102,11 +119,17 @@ if __name__ == "__main__":
     group.add_argument('--zip_path', type=str, help='path to zips folder.')
     parser.add_argument('--full_ctf', action='store_true')
     parser.add_argument('--full_vtf', action='store_true')
-    parser.add_argument('--zip_file', action='store_true', help="is the folder zipped")
-    parser.add_argument('--amount_of_rwr', default=2, help="amount of RWR file from the last")
-    parser.add_argument('--project', type=str, choices=['SPA', 'OBERON'], required=True)
+    parser.add_argument('--zip_file', type=str, help="is the folder zipped")
+    parser.add_argument('--project', type=str, choices=['SPA', 'OBERON', 'OPHELIA'], required=True)
     args = parser.parse_args()
-    if args.zip_path:
+    if args.zip_file:
+        tmp = str(args.zip_file).split("\\")[-1]
+        zip_folder = f"{args.zip_file.split('.zip')[0]}"
+        create_folder(zip_folder)
+        FH.unzip(args.zip_file, zip_folder)
+        print(f"done unziping {args.zip_file}")
+        run_auto_fa(args, zip_folder, project=args.project)
+    elif args.zip_path:
         zip_list = get_zip_file_list(args.zip_path)
         for zip in zip_list:
             name = f"{zip.split('.zip')[0]}"
@@ -115,11 +138,8 @@ if __name__ == "__main__":
             create_folder(zip_folder)
             FH.unzip(zip, zip_folder)
             print(f"done unziping {zip}")
-            run_auto_fa(args, zip_folder, project=args.prject)
+            run_auto_fa(args, zip_folder, project=args.project)
             FH.copy_res(main_folder=args.zip_path, path=zip_folder, name=name)
-
     else:
-        run_auto_fa(args, args.path, project=args.project)
+        run_auto_fa(path=args.path, project=args.project)
     print("Done Auto FA.")
-
-

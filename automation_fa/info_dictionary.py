@@ -59,6 +59,7 @@ rwr = {
     "GBB": [],
     "exception": [],
     "invalidate": [],
+    "sdr": []
 }
 rwr_files = {
     "assert_files": [],
@@ -73,5 +74,7 @@ device_info = {
     "flash_type": "Not Found",
     "type": "Not Found",
     "card_capacity": "Not Found",
-    "gear": "Not Found"
+    "gear": "Not Found",
+    "cycleId": "Not Found",
+    "TTF": "Not Found"
 }
