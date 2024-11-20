@@ -44,6 +44,12 @@ def get_device_info(path):
                 gear_match = re.search(r'\d+', tmp[1])
                 if gear_match:
                     device_info_tmp['gear'] = int(gear_match.group())
+                tmp = line.split("|")
+                for value in tmp:
+                    if "rate" in value:
+                        device_info_tmp['rate'] = re.search(r'\d+', value).group()
+                    if "lanes" in value:
+                        device_info_tmp['lanes'] = re.search(r'\d+', value).group()
             elif "Elapsed time" in line:
                 tmp = line.split("time")
                 device_info_tmp['TTF'] = tmp[1].strip()
@@ -140,7 +146,7 @@ def get_rel_from_data(path):
     voltage = ""
     for line in data:
         if "rel err" in line.lower():
-            rel_err["REL Err in VTF"].append(line)
+            rel_err["REL Err in VTF"].append(line.strip("\n"))
         elif "Current Voltage" in line:
             voltage = line
     rel_err["Voltage"] = voltage

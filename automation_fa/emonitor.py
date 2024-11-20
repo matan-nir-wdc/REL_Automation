@@ -33,7 +33,7 @@ def run_emonitor(path: str = "F:\\AutoFA", sres: bool = False):
     decrypt_path = FH.getFilePath(original_file_path=path, file_name="*decrypt.bot")
     files = FH.getFilesPath(path=path, exception="rwr")
 
-    if len(files) <1:
+    if len(files) < 1:
         print("No RWR")
         return None, None
 
@@ -65,7 +65,7 @@ def read_results(result_path: str, check_error: [str]) -> dict:
     print("Done reading the results.")
     analyze_data(path=result_path, data=data, rwr_issues=rwr_issues, amount_of_issue=amount_of_issue)
     check_sign(path=result_path)
-    if any(amount_of_issue[issue] > 0 for issue in ["assert", "fatal", "exception", "uecc"]):
+    if any(amount_of_issue[issue] > 0 for issue in ["assert ", "fatal", "exception", "uecc"]):
         if amount_of_issue["exception"] > 1:
             for val in rwr_issues["exception"]:
                 if "System exception pt1" in val:
@@ -85,7 +85,7 @@ def analyze_data(path, data, rwr_issues, amount_of_issue):
         first_part = row.name.split('(')[0].strip()
         # Check if the first part contains any of the keywords
         for key in keywords:
-            if key in str(first_part).lower():
+            if key in str(first_part).lower() and "errorlog" not in str(first_part).lower():
                 rwr_issues[key].append(f"[{row.name}], amount: {row.amount}")
                 amount_of_issue[key] = amount_of_issue[key] + int(row.amount)
 
@@ -114,6 +114,7 @@ def check_sign(path):
     for index, row in issue_sign.iterrows():
         excel_name = row['name'].lower()
         amount_need = row['amount']
+        note = row['note']
 
         # Check if the Excel name is contained in any of the CSV names
         for _, csv_row in csv_df.iterrows():
@@ -121,7 +122,7 @@ def check_sign(path):
             amount_found = csv_row['amount']
 
             if excel_name in csv_name and amount_found >= amount_need:
-                issue_apear_more_than_standart.append(f"[{excel_name}], amount: " + str(amount_found))
+                issue_apear_more_than_standart.append(f"[{csv_name}], amount: " + str(amount_found) + f", {note}")
     FH.write_file(folder_path=path, section_name="Issues that appear more than approved:\n",
                   report=issue_apear_more_than_standart)
     print("finish check_sign")

@@ -8,10 +8,14 @@ def get_smart_report(path, project_json):
     data = ""
     for new_path in SRF:
         file_path = FH.getFilePath(original_file_path=new_path, file_name="SmartReport.json")
-        if file_path:
-            data = LOG.get_json_data(file=file_path)
-            data = data["ROTW_final"]
+        try:
+            if file_path:
+                data = LOG.get_json_data(file=file_path)
+                data = data["ROTW_final"]
+        except Exception as e:
+            print("Can't load smart report")
             break
+        break
     if not data:
         return False
 

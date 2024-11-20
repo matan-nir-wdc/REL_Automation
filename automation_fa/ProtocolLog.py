@@ -21,7 +21,7 @@ def get_timestamp_event(path, vtf, show_cmd=5):
 
 def search_cmd_timestamp(file, vtf, show_cmd):
     if vtf['Timestamp'] == 'Not Found':
-        return "Could Not find Time Stamp"
+        return "Could Not find Time Stamp in VTF Log"
     data = CSV.get_data(file=file, skiprows=20)
     headers_needed = ['Timestamp', 'Time', 'TypeofPacket', 'TransactionType', 'IID', 'TASKTag', 'LUN', 'Data',
                       'ResetValue', 'DMEInd', 'DMEVector']

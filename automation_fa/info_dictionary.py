@@ -53,7 +53,7 @@ vtf_asc = {
 rwr = {
     "err": [],
     "fail": [],
-    "assert": [],
+    "assert ": [],
     "fatal": [],
     "uecc": [],
     "cecc": [],
